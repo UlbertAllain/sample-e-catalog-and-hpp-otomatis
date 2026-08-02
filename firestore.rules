@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function validCatalogShape() {
+      return request.resource.data.keys().hasOnly([
+        'name', 'slug', 'category', 'description', 'imageUrl',
+        'featured', 'active', 'sortOrder', 'variants',
+        'createdAt', 'updatedAt'
+      ]);
+    }
+
+    // Koleksi publik sengaja dipisahkan agar resep dan komponen HPP tidak pernah
+    // ikut terkirim ke browser pengunjung.
+    match /catalogProducts/{productId} {
+      allow get, list: if resource.data.active == true || isAdmin();
+      allow create, update: if isAdmin() && validCatalogShape();
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /ingredients/{ingredientId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /ingredientCostHistory/{historyId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

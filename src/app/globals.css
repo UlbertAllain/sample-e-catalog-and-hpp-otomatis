@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+  --color-ink: #17130f;
+  --color-paper: #f7f2ea;
+  --color-surface: #fffdf9;
+  --color-brand: #f15a16;
+  --color-brand-dark: #c93f07;
+  --color-sand: #eadfce;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #f7f2ea;
+  color: #17130f;
+  font-family: var(--font-sans);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-duration: 160ms;
+}
+
+input,
+select,
+textarea {
+  color: #17130f;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgb(23 19 15 / 0.35);
+}
+
+::selection {
+  background: #f15a16;
+  color: white;
+}
+
+.admin-card {
+  border: 1px solid rgb(23 19 15 / 0.08);
+  border-radius: 1rem;
+  background: #fffdf9;
+  box-shadow: 0 12px 35px rgb(68 42 23 / 0.055);
+}
+
+.admin-field {
+  width: 100%;
+  border: 1px solid rgb(23 19 15 / 0.12);
+  border-radius: 0.75rem;
+  background: white;
+  padding: 0.75rem 0.875rem;
+  outline: none;
+}
+
+.admin-field:focus,
+.admin-field:focus-within {
+  border-color: #f15a16;
+  box-shadow: 0 0 0 3px rgb(241 90 22 / 0.1);
+}
+
+.admin-label {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+.admin-button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background: #17130f;
+  padding: 0.75rem 1rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.admin-button-primary:hover {
+  background: #f15a16;
+  transform: translateY(-1px);
+}
+
+.admin-button-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.admin-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(23 19 15 / 0.12);
+  border-radius: 0.75rem;
+  background: white;
+  padding: 0.7rem 0.95rem;
+  color: #17130f;
+  font-size: 0.875rem;
+  font-weight: 750;
+}
+
+.admin-button-secondary:hover {
+  border-color: rgb(241 90 22 / 0.45);
+  color: #c93f07;
+}

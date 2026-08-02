@@ -1,0 +1,1875 @@
+diff --git a/README.md b/README.md
+index 5befe02..47c5343 100644
+--- a/README.md
++++ b/README.md
+@@ -16,6 +16,25 @@ Stack:
+ 
+ > Menu admin tidak ditampilkan pada e-catalog. Pengunjung hanya membaca koleksi `catalogProducts`; resep dan HPP disimpan pada koleksi privat.
+ 
++## Panduan cepat untuk pemilik toko
++
++Setelah website selesai dipasang oleh developer, pemilik toko cukup mengikuti empat menu ini:
++
++1. **Bahan & kemasan** — masukkan harga beli, jumlah barang, dan bagian bahan yang bisa dipakai.
++2. **Biaya & harga jual** — masukkan sewa, gaji tetap, biaya alat, perkiraan gelas terjual, dan target keuntungan.
++3. **Produk & resep** — buat produk, pilihan ukuran, harga jual, serta bahan untuk sekali produksi.
++4. **Ringkasan usaha** — periksa modal satu gelas, keuntungan, dan harga jual yang disarankan.
++
++Arti istilah penting:
++
++- **HPP:** total modal untuk membuat satu gelas.
++- **Bagian yang bisa dipakai:** sisa bahan setelah kulit, biji, atau bagian rusak dibuang.
++- **Sekali produksi:** satu kali membuat resep, misalnya satu blender menghasilkan empat gelas.
++- **Keuntungan (%):** bagian dari harga jual yang tersisa setelah modal dikurangi.
++- **Kode barang:** dibuat otomatis oleh sistem; pengguna tidak perlu mengetiknya.
++
++Panduan yang sama tersedia langsung di menu `/admin/panduan`.
++
+ ---
+ 
+ ## 1. Jalankan project
+@@ -225,7 +244,7 @@ Firebase Console → Firestore Database → Data
+ 
+ ## 7. Urutan penggunaan admin yang benar
+ 
+-### Langkah 1 — Isi bahan baku
++### Langkah 1 — Isi bahan dan kemasan
+ 
+ Buka:
+ 
+@@ -237,11 +256,11 @@ Contoh pembelian mangga 1 kg seharga Rp35.000:
+ 
+ ```text
+ Nama bahan       : Mangga harum manis
+-Jenis biaya      : Bahan produksi
+-Satuan dasar     : gram
++Kelompok         : Bahan minuman/makanan
++Satuan resep     : gram
+ Harga beli       : 35000
+ Jumlah pembelian : 1000
+-Yield            : 72
++Bagian terpakai  : 72
+ ```
+ 
+ Jangan menulis `1` pada jumlah pembelian jika satuan dasarnya `gram`. Tulis `1000`.
+@@ -249,11 +268,11 @@ Jangan menulis `1` pada jumlah pembelian jika satuan dasarnya `gram`. Tulis `100
+ Untuk cup isi:
+ 
+ ```text
+-Jenis biaya      : Kemasan
++Kelompok         : Kemasan
+ Satuan dasar     : pcs
+ Harga beli       : 50000
+ Jumlah pembelian : 50
+-Yield            : otomatis 100%
++Bagian terpakai  : otomatis 100%
+ ```
+ 
+ SKU tidak perlu diketik. Saat bahan pertama kali disimpan, sistem membuat SKU otomatis:
+@@ -267,7 +286,7 @@ SKU dibuat satu kali dari jenis item, nama, dan identitas dokumen Firestore. Saa
+ 
+ Spinner/arrow bawaan pada seluruh input angka sudah disembunyikan melalui `src/app/globals.css`.
+ 
+-### Langkah 2 — Atur kebijakan HPP
++### Langkah 2 — Atur biaya bulanan dan target keuntungan
+ 
+ Buka:
+ 
+@@ -281,13 +300,13 @@ Tambahkan:
+ - gaji tetap;
+ - penyusutan alat;
+ - biaya tetap lain;
+-- target porsi normal per bulan;
+-- target gross margin;
++- perkiraan gelas terjual per bulan;
++- target keuntungan dari harga jual;
+ - kelipatan pembulatan harga.
+ 
+-Jangan masukkan biaya yang sama dua kali. Contoh: gaji pegawai tidak boleh dimasukkan ke gaji tetap sekaligus ke tenaga kerja per batch, kecuali memang ada dua komponen berbeda.
++Jangan masukkan biaya yang sama dua kali. Contoh: gaji pegawai tidak boleh dimasukkan ke gaji tetap sekaligus ke upah sekali produksi, kecuali memang ada dua komponen berbeda.
+ 
+-### Langkah 3 — Tambahkan produk dan resep
++### Langkah 3 — Tambahkan produk, pilihan ukuran, dan resep
+ 
+ Buka:
+ 
+@@ -295,15 +314,15 @@ Buka:
+ /admin/produk/tambah
+ ```
+ 
+-Isi informasi katalog, gambar, lalu buat varian. Untuk setiap varian:
++Isi informasi katalog, gambar, lalu buat pilihan ukuran. Untuk setiap pilihan:
+ 
+-1. Isi nama varian dan harga jual.
+-2. SKU varian akan dibuat otomatis ketika produk disimpan.
+-3. Isi hasil batch berupa jumlah porsi layak jual.
+-4. Isi process loss jika resep merupakan **kebutuhan bersih**.
++1. Isi nama pilihan atau ukuran dan harga jual.
++2. Kode produk akan dibuat otomatis ketika produk disimpan.
++3. Isi jumlah gelas yang dihasilkan dari sekali produksi.
++4. Isi tambahan bahan karena sisa atau tumpah jika jumlah resep belum memasukkannya.
+ 5. Tambahkan bahan dan kemasan pada resep.
+-6. Periksa HPP, saran harga, margin, dan panel audit.
+-7. Aktifkan produk hanya jika seluruh data sudah valid.
++6. Periksa modal satu gelas, saran harga, keuntungan, dan pesan perbaikan.
++7. Tampilkan produk di katalog hanya jika seluruh data sudah benar.
+ 
+ Contoh SKU varian otomatis:
+ 
+@@ -315,7 +334,7 @@ SKU varian juga bersifat stabil. Mengganti nama produk atau nama varian tidak me
+ 
+ **Penting:** kuantitas resep pada aplikasi didefinisikan sebagai kebutuhan bersih untuk menghasilkan batch layak jual. Sistem menambah kebutuhan bahan produksi menggunakan process loss. Jika kuantitas yang kamu input sudah merupakan pemakaian aktual/gross, isi process loss `0` agar susut tidak dihitung dua kali.
+ 
+-### Langkah 4 — Audit dashboard
++### Langkah 4 — Periksa ringkasan usaha
+ 
+ Buka:
+ 
+@@ -326,12 +345,12 @@ Buka:
+ Dashboard menggunakan data nyata untuk menampilkan:
+ 
+ - jumlah produk dan bahan aktif;
+-- rata-rata HPP varian aktif;
+-- rata-rata margin varian aktif;
+-- komposisi biaya per porsi;
+-- varian yang memiliki masalah formula atau margin di bawah target.
++- rata-rata modal produk yang ditampilkan;
++- rata-rata keuntungan dari harga jual;
++- isi biaya untuk setiap gelas;
++- pilihan produk yang datanya belum lengkap atau keuntungannya di bawah target.
+ 
+-Produk draft dan varian nonaktif tidak ikut menghitung rata-rata dashboard.
++Produk yang disembunyikan dan pilihan yang tidak ditampilkan tidak ikut menghitung rata-rata ringkasan.
+ 
+ ---
+ 
+@@ -508,3 +527,8 @@ saleItems
+ ```
+ 
+ Dengan `hppSnapshots`, laporan penjualan lama tidak berubah ketika harga bahan hari ini diperbarui.
++
++
++## Audit bahasa pengguna
++
++Hasil audit bahasa dan kemudahan penggunaan tersedia di `docs/UX-LANGUAGE-AUDIT.md`.
+diff --git a/docs/UX-LANGUAGE-AUDIT.md b/docs/UX-LANGUAGE-AUDIT.md
+new file mode 100644
+index 0000000..2a44e3d
+--- /dev/null
++++ b/docs/UX-LANGUAGE-AUDIT.md
+@@ -0,0 +1,53 @@
++# Audit Bahasa dan Kemudahan Penggunaan
++
++Versi audit: v4.2
++Sasaran pengguna: pemilik atau pegawai toko yang tidak terbiasa dengan istilah teknologi dan akuntansi.
++
++## Kesimpulan
++
++Versi v4.1 belum sepenuhnya ramah pengguna awam. Alur dasarnya sudah benar, tetapi banyak istilah teknis muncul tanpa penjelasan langsung. Nilai sebelum perbaikan: **6/10**. Setelah perbaikan v4.2: **8,5/10** untuk penggunaan desktop dasar.
++
++## Masalah yang ditemukan
++
++1. Istilah seperti `yield`, `batch`, `process loss`, `overhead`, `gross margin`, `SKU`, `slug`, `audit`, dan `formula` muncul langsung di form.
++2. Beberapa teks memakai bahasa Inggris, misalnya `Product editor`, `Private admin`, `preview`, dan `workspace`.
++3. Kolom teknis seperti alamat halaman produk ditampilkan sejajar dengan data utama, sehingga terlihat wajib diisi.
++4. Penjelasan memakai teks sangat kecil dan warna terlalu pucat.
++5. Pesan kesalahan menjelaskan istilah sistem, tetapi belum selalu memberi langkah perbaikan.
++6. Status `Draft`, `Publik`, `Aktif`, dan `Nonaktif` belum menjelaskan akibatnya bagi katalog.
++7. Istilah HPP dan margin muncul tanpa arti sederhana pada titik pertama pengguna melihatnya.
++8. Urutan langkah pada halaman biaya membingungkan karena halaman disebut langkah 2, tetapi bagian di dalamnya memakai langkah 2 dan 3.
++
++## Perbaikan yang diterapkan
++
++- `HPP` dijelaskan sebagai **total modal untuk membuat satu gelas**.
++- `yield` diubah menjadi **bagian yang bisa dipakai**.
++- `batch` diubah menjadi **sekali produksi**.
++- `process loss` diubah menjadi **tambahan bahan karena sisa atau tumpah**.
++- `overhead` diubah menjadi **bagian biaya bulanan untuk satu gelas**.
++- `margin` ditampilkan sebagai **perkiraan keuntungan dari harga jual**.
++- `SKU` ditampilkan sebagai **kode barang yang dibuat otomatis**.
++- `slug` dipindahkan ke bagian **Pengaturan teknis — biasanya tidak perlu diubah**.
++- `Produk aktif` diubah menjadi **Tampilkan produk di katalog**.
++- `Varian aktif` diubah menjadi **Tampilkan pilihan ini di katalog**.
++- Pesan kesalahan kini menyebut kolom yang harus diperbaiki dan tindakan berikutnya.
++- Panduan pada setiap halaman dibuka secara otomatis.
++- Ukuran dan kontras teks bantuan ditingkatkan.
++- Halaman panduan mendapat kamus istilah dan contoh angka sederhana.
++- Halaman login tidak lagi menampilkan istilah Firebase atau custom claim kepada pengguna akhir.
++
++## Batasan yang masih ada
++
++- Tabel desktop masih membutuhkan geser horizontal pada layar kecil.
++- Sistem belum memiliki tur interaktif yang menyorot kolom satu per satu.
++- Belum ada mode simulasi data sebelum pengguna menyimpan.
++- Nilai `0` tetap tampil pada kolom angka; sistem memilih seluruh angka saat kolom diklik agar mudah ditimpa.
++- Beberapa istilah teknis tetap ada pada README bagian instalasi karena bagian tersebut ditujukan untuk developer.
++
++## Rekomendasi tahap berikutnya
++
++1. Tambahkan mode onboarding yang menandai langkah yang sudah selesai.
++2. Tambahkan contoh isi langsung di bawah setiap kolom berdasarkan jenis usaha.
++3. Buat tampilan kartu untuk tabel bahan dan produk pada layar ponsel.
++4. Tambahkan tombol “Gunakan saran harga” agar pengguna tidak menyalin angka manual.
++5. Tambahkan simulasi perubahan harga bahan sebelum perubahan disimpan.
+diff --git a/src/app/admin/(protected)/bahan/page.tsx b/src/app/admin/(protected)/bahan/page.tsx
+index 56b4f6c..ea4067a 100644
+--- a/src/app/admin/(protected)/bahan/page.tsx
++++ b/src/app/admin/(protected)/bahan/page.tsx
+@@ -37,7 +37,7 @@ export default function IngredientsPage() {
+   }
+ 
+   useEffect(() => {
+-    getIngredients().then(setItems).catch(() => setMessage("Bahan baku gagal dimuat."));
++    getIngredients().then(setItems).catch(() => setMessage("Daftar bahan belum berhasil dimuat. Coba muat ulang halaman."));
+   }, []);
+ 
+   async function submit(event: FormEvent) {
+@@ -57,9 +57,9 @@ export default function IngredientsPage() {
+       await saveIngredient(normalized, editingId ?? undefined);
+       await load();
+       resetForm();
+-      setMessage(wasEditing ? "Bahan berhasil diperbarui." : "Bahan berhasil ditambahkan.");
++      setMessage(wasEditing ? "Perubahan bahan berhasil disimpan." : "Bahan baru berhasil ditambahkan.");
+     } catch (cause) {
+-      setMessage(cause instanceof Error ? cause.message : "Bahan gagal disimpan.");
++      setMessage(cause instanceof Error ? cause.message : "Bahan belum berhasil disimpan. Coba lagi.");
+     } finally {
+       setSaving(false);
+     }
+@@ -91,61 +91,61 @@ export default function IngredientsPage() {
+     setMessage("");
+     try {
+       if (await isIngredientUsed(item.id)) {
+-        setMessage(`${item.name} masih dipakai pada resep. Hapus dari seluruh resep atau nonaktifkan bahan ini.`);
++        setMessage(`${item.name} masih dipakai di resep produk. Hapus bahan ini dari resep terlebih dahulu, atau cukup sembunyikan dengan mematikan status aktif.`);
+         return;
+       }
+-      if (!window.confirm(`Hapus bahan ${item.name}? Riwayat biaya tetap disimpan untuk audit.`)) return;
++      if (!window.confirm(`Yakin ingin menghapus ${item.name}? Riwayat perubahan harganya tetap disimpan.`)) return;
+       await deleteIngredient(item.id);
+       await load();
+       setMessage("Bahan berhasil dihapus.");
+     } catch (cause) {
+-      setMessage(cause instanceof Error ? cause.message : "Bahan gagal dihapus.");
++      setMessage(cause instanceof Error ? cause.message : "Bahan belum berhasil dihapus. Coba lagi.");
+     }
+   }
+ 
+   return (
+     <section>
+       <div>
+-        <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Master data / Bahan baku</p>
+-        <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em]">Bahan dan kemasan</h1>
+-        <p className="mt-2 max-w-3xl text-sm leading-6 text-black/50">Masukkan harga pembelian dalam satuan dasar resep. Contoh: pembelian 1 kg mangga ditulis sebagai 1.000 gram.</p>
++        <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Bahan & kemasan</p>
++        <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em]">Daftar bahan dan kemasan</h1>
++        <p className="mt-2 max-w-3xl text-sm leading-6 text-black/65">Masukkan data sesuai nota pembelian. Gunakan satuan yang sama dengan resep, misalnya 1 kg mangga ditulis sebagai 1.000 gram.</p>
+       </div>
+ 
+       <AdminGuidePanel
+         className="mt-6"
+         defaultOpen
+-        eyebrow="Panduan langkah 1"
+-        title="Isi bahan dalam satuan yang akan dipakai pada resep"
+-        description="Sistem menghitung biaya per gram, ml, atau pcs dari harga pembelian dan yield. Data ini menjadi fondasi seluruh HPP produk."
++        eyebrow="Langkah 1 dari 4"
++        title="Masukkan data pembelian dengan satuan yang sama seperti resep"
++        description="Dari data ini, sistem menghitung biaya setiap gram, ml, atau pcs. Hasilnya dipakai untuk menghitung modal semua produk."
+         steps={[
+-          { title: "Pilih satuan dasar", description: "Ubah kilogram menjadi gram dan liter menjadi ml sebelum disimpan. Jangan mencampur satuan beli dengan satuan resep." },
+-          { title: "Isi harga dan jumlah pembelian", description: "Contoh Rp30.000 untuk 1 kg mangga ditulis harga Rp30.000 dan jumlah 1.000 gram." },
+-          { title: "Tentukan yield bersih", description: "Gunakan hasil timbang setelah kulit, biji, trimming, atau bagian tidak terpakai dibuang. Kemasan otomatis 100%." },
+-          { title: "Periksa preview biaya", description: "Pastikan biaya efektif per satuan di panel kanan masuk akal sebelum bahan disimpan." }
++          { title: "Pilih satuan resep", description: "Ubah kilogram menjadi gram dan liter menjadi ml. Contoh: 1 kg ditulis 1.000 gram." },
++          { title: "Isi harga dan jumlah beli", description: "Salin harga dari nota, lalu isi jumlah barang yang didapat dengan satuan yang sudah dipilih." },
++          { title: "Isi bagian yang bisa dipakai", description: "Untuk buah, hitung bagian setelah kulit, biji, atau bagian rusak dibuang. Kemasan selalu 100%." },
++          { title: "Periksa perkiraan biaya", description: "Lihat panel di sebelah kanan. Pastikan biaya per gram, ml, atau pcs terasa masuk akal sebelum disimpan." }
+         ]}
+-        note="Yield bahan bukan susut saat produksi. Kehilangan karena tertinggal di blender atau tumpah dicatat sebagai process loss pada resep produk."
++        note="Kulit dan biji dicatat di halaman ini. Bahan yang tertinggal di blender atau tumpah dicatat nanti di resep produk, supaya tidak dihitung dua kali."
+       />
+ 
+-      {message && <p className="mt-5 rounded-xl border border-[#f3c7a9] bg-[#fff4eb] p-4 text-sm font-bold text-[#9a3b0d]">{message}</p>}
++      {message && <p className="mt-5 rounded-xl border border-[#f3c7a9] bg-[#fff4eb] p-4 text-sm font-bold leading-6 text-[#9a3b0d]">{message}</p>}
+ 
+       <div className="mt-7 grid gap-5 xl:grid-cols-[1fr_320px]">
+         <form onSubmit={submit} className="admin-card p-5 sm:p-6">
+           <div className="flex items-center justify-between gap-4 border-b border-black/10 pb-5">
+             <div>
+-              <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Langkah 1</p>
+-              <h2 className="mt-1 font-display text-2xl font-bold">{editingId ? "Edit master bahan" : "Tambahkan master bahan"}</h2>
++              <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Form bahan</p>
++              <h2 className="mt-1 font-display text-2xl font-bold">{editingId ? "Ubah data bahan" : "Tambah bahan baru"}</h2>
+             </div>
+             {editingId && (
+               <button type="button" onClick={resetForm} className="admin-button-secondary">
+-                <RotateCcw className="size-4" /> Batal edit
++                <RotateCcw className="size-4" /> Batal mengubah
+               </button>
+             )}
+           </div>
+ 
+           <div className="mt-6 grid gap-5 md:grid-cols-2">
+-            <Input label="Nama bahan" placeholder="Contoh: Mangga harum manis" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} />
++            <Input label="Nama bahan atau kemasan" placeholder="Contoh: Mangga harum manis" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} />
+             <AutoSkuField value={form.sku} />
+-            <label className="admin-label">Jenis biaya
++            <label className="admin-label">Kelompok
+               <select
+                 value={form.costType}
+                 onChange={(event) => {
+@@ -154,43 +154,45 @@ export default function IngredientsPage() {
+                 }}
+                 className="admin-field font-normal"
+               >
+-                <option value="material">Bahan produksi</option>
+-                <option value="packaging">Kemasan</option>
++                <option value="material">Bahan minuman/makanan</option>
++                <option value="packaging">Kemasan, cup, atau sedotan</option>
+               </select>
+             </label>
+-            <label className="admin-label">Satuan dasar resep
++            <label className="admin-label">Satuan yang dipakai di resep
+               <select value={form.unit} onChange={(event) => setForm((current) => ({ ...current, unit: event.target.value as Unit }))} className="admin-field font-normal">
+                 <option value="gram">gram</option>
+                 <option value="ml">ml</option>
+                 <option value="pcs">pcs</option>
+               </select>
++              <span className="text-xs font-normal leading-5 text-black/50">Pilih gram untuk bahan timbang, ml untuk cairan, dan pcs untuk barang satuan.</span>
+             </label>
+-            <NumberField label="Harga beli" value={form.purchasePrice} onChange={(value) => setForm((current) => ({ ...current, purchasePrice: value }))} prefix="Rp" />
+-            <NumberField label={`Jumlah pembelian (${form.unit})`} value={form.purchaseQuantity} min={0} step="any" onChange={(value) => setForm((current) => ({ ...current, purchaseQuantity: value }))} />
++            <NumberField label="Harga yang dibayar" value={form.purchasePrice} onChange={(value) => setForm((current) => ({ ...current, purchasePrice: value }))} prefix="Rp" note="Isi total harga pada satu kali pembelian." />
++            <NumberField label={`Jumlah barang yang didapat (${form.unit})`} value={form.purchaseQuantity} min={0} step="any" onChange={(value) => setForm((current) => ({ ...current, purchaseQuantity: value }))} note={`Contoh: 1 kg ditulis 1.000 ${form.unit === "gram" ? "gram" : form.unit}.`} />
+             <NumberField
+-              label="Yield bahan"
++              label="Bagian yang bisa dipakai"
+               value={form.costType === "packaging" ? 100 : form.yieldPercent}
+               min={0}
+               max={100}
+               step="0.01"
+               suffix="%"
+               disabled={form.costType === "packaging"}
++              note={form.costType === "packaging" ? "Kemasan selalu dihitung 100% bisa dipakai." : "Contoh: setelah kulit dan biji dibuang, mangga yang tersisa 70%, maka isi 70."}
+               onChange={(value) => setForm((current) => ({ ...current, yieldPercent: value }))}
+             />
+-            <Input label="Supplier" required={false} placeholder="Opsional" value={form.supplier ?? ""} onChange={(value) => setForm((current) => ({ ...current, supplier: value }))} />
++            <Input label="Tempat beli / pemasok" required={false} placeholder="Opsional, contoh: Pasar Buah A" value={form.supplier ?? ""} onChange={(value) => setForm((current) => ({ ...current, supplier: value }))} />
+           </div>
+ 
+-          <label className="admin-label mt-5">Catatan
+-            <textarea value={form.notes ?? ""} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} rows={3} placeholder="Contoh: harga acuan dari supplier A" className="admin-field resize-y font-normal" />
++          <label className="admin-label mt-5">Catatan tambahan
++            <textarea value={form.notes ?? ""} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} rows={3} placeholder="Contoh: harga dari nota tanggal 2 Agustus" className="admin-field resize-y font-normal" />
+           </label>
+ 
+           <div className="mt-5 flex flex-col justify-between gap-4 rounded-xl border border-black/10 bg-[#fbf8f3] p-4 sm:flex-row sm:items-center">
+             <label className="inline-flex items-center gap-3 text-sm font-bold">
+               <input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} className="size-4 accent-[#f15a16]" />
+-              Bahan aktif dan dapat dipilih pada resep
++              Bahan boleh dipilih saat membuat resep
+             </label>
+             <button disabled={saving} className="admin-button-primary">
+-              <Plus className="size-4" /> {saving ? "Menyimpan..." : editingId ? "Simpan perubahan" : "Tambah bahan"}
++              <Plus className="size-4" /> {saving ? "Sedang menyimpan..." : editingId ? "Simpan perubahan" : "Tambah bahan"}
+             </button>
+           </div>
+         </form>
+@@ -198,17 +200,17 @@ export default function IngredientsPage() {
+         <aside className="space-y-5">
+           <div className="admin-card overflow-hidden">
+             <div className="bg-[#17130f] p-5 text-white">
+-              <p className="text-xs font-black uppercase tracking-[.14em] text-[#ff9d6e]">Preview biaya</p>
+-              <p className="mt-4 text-sm text-white/55">Biaya efektif per {form.unit}</p>
++              <p className="text-xs font-black uppercase tracking-[.14em] text-[#ff9d6e]">Perkiraan biaya</p>
++              <p className="mt-4 text-sm text-white/70">Biaya untuk setiap 1 {form.unit}</p>
+               <p className="mt-1 text-3xl font-black">{formatRupiah(effectiveUnitCost)}</p>
+             </div>
+             <div className="grid grid-cols-2 divide-x divide-black/10">
+               <div className="p-4">
+-                <p className="text-[11px] font-bold text-black/40">Jumlah bruto</p>
++                <p className="text-xs font-bold text-black/50">Jumlah sebelum dibersihkan</p>
+                 <p className="mt-1 font-black">{form.purchaseQuantity || 0} {form.unit}</p>
+               </div>
+               <div className="p-4">
+-                <p className="text-[11px] font-bold text-black/40">Dapat dipakai</p>
++                <p className="text-xs font-bold text-black/50">Jumlah yang bisa dipakai</p>
+                 <p className="mt-1 font-black">{usableQuantity.toFixed(2)} {form.unit}</p>
+               </div>
+             </div>
+@@ -218,17 +220,17 @@ export default function IngredientsPage() {
+             <div className="flex items-start gap-3">
+               <Info className="mt-0.5 size-5 shrink-0 text-[#f15a16]" />
+               <div>
+-                <h3 className="font-bold">Cara mengisi yang benar</h3>
+-                <p className="mt-2 text-xs leading-5 text-black/55">Yield hanya untuk bagian bahan yang tidak dapat dipakai, seperti kulit atau biji. Kemasan otomatis memakai yield 100%.</p>
++                <h3 className="font-bold">Contoh sederhana</h3>
++                <p className="mt-2 text-sm leading-6 text-black/65">Beli mangga 1.000 gram seharga Rp30.000. Setelah dibersihkan tersisa 700 gram, berarti bagian yang bisa dipakai adalah 70%.</p>
+               </div>
+             </div>
+           </div>
+ 
+           <div className="admin-card p-5">
+-            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Ringkasan master</p>
+-            <div className="mt-4 flex items-center justify-between"><span className="text-sm text-black/50">Bahan aktif</span><strong>{items.filter((item) => item.active).length}</strong></div>
+-            <div className="mt-3 flex items-center justify-between"><span className="text-sm text-black/50">Bahan produksi</span><strong>{items.filter((item) => item.costType === "material").length}</strong></div>
+-            <div className="mt-3 flex items-center justify-between"><span className="text-sm text-black/50">Kemasan</span><strong>{items.filter((item) => item.costType === "packaging").length}</strong></div>
++            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Ringkasan daftar</p>
++            <div className="mt-4 flex items-center justify-between"><span className="text-sm text-black/60">Bisa dipakai di resep</span><strong>{items.filter((item) => item.active).length}</strong></div>
++            <div className="mt-3 flex items-center justify-between"><span className="text-sm text-black/60">Bahan produksi</span><strong>{items.filter((item) => item.costType === "material").length}</strong></div>
++            <div className="mt-3 flex items-center justify-between"><span className="text-sm text-black/60">Kemasan</span><strong>{items.filter((item) => item.costType === "packaging").length}</strong></div>
+           </div>
+         </aside>
+       </div>
+@@ -236,30 +238,30 @@ export default function IngredientsPage() {
+       <div className="admin-card mt-5 overflow-hidden">
+         <div className="flex items-center justify-between gap-4 border-b border-black/10 p-5 sm:px-6">
+           <div>
+-            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Master tersimpan</p>
++            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Data tersimpan</p>
+             <h2 className="mt-1 font-display text-2xl font-bold">Daftar bahan dan kemasan</h2>
+           </div>
+-          <span className="flex items-center gap-2 rounded-lg bg-[#f7f2ea] px-3 py-2 text-xs font-bold text-black/45"><CircleDollarSign className="size-4" /> {items.length} item</span>
++          <span className="flex items-center gap-2 rounded-lg bg-[#f7f2ea] px-3 py-2 text-xs font-bold text-black/55"><CircleDollarSign className="size-4" /> {items.length} data</span>
+         </div>
+         <div className="overflow-x-auto">
+           <table className="w-full min-w-[980px] text-left text-sm">
+-            <thead className="bg-[#fbf8f3] text-[11px] uppercase tracking-[.08em] text-black/40">
+-              <tr><th className="px-6 py-3.5">Bahan</th><th className="px-6 py-3.5">Jenis</th><th className="px-6 py-3.5">Harga beli</th><th className="px-6 py-3.5">Jumlah</th><th className="px-6 py-3.5">Yield</th><th className="px-6 py-3.5">Biaya efektif</th><th className="px-6 py-3.5">Status</th><th className="px-6 py-3.5" /></tr>
++            <thead className="bg-[#fbf8f3] text-[11px] uppercase tracking-[.08em] text-black/50">
++              <tr><th className="px-6 py-3.5">Nama</th><th className="px-6 py-3.5">Kelompok</th><th className="px-6 py-3.5">Harga beli</th><th className="px-6 py-3.5">Jumlah</th><th className="px-6 py-3.5">Bisa dipakai</th><th className="px-6 py-3.5">Biaya per satuan</th><th className="px-6 py-3.5">Status</th><th className="px-6 py-3.5" /></tr>
+             </thead>
+             <tbody>
+               {items.map((item) => (
+                 <tr key={item.id} className="border-t border-black/10 hover:bg-[#fffaf5]">
+-                  <td className="px-6 py-4"><p className="font-bold">{item.name}</p><p className="mt-0.5 text-xs text-black/40">{item.sku || "Tanpa SKU"} {item.supplier ? `· ${item.supplier}` : ""}</p></td>
++                  <td className="px-6 py-4"><p className="font-bold">{item.name}</p><p className="mt-0.5 text-xs text-black/50">Kode: {item.sku || "belum dibuat"} {item.supplier ? `· ${item.supplier}` : ""}</p></td>
+                   <td className="px-6 py-4">{item.costType === "packaging" ? "Kemasan" : "Bahan produksi"}</td>
+                   <td className="px-6 py-4">{formatRupiah(item.purchasePrice)}</td>
+                   <td className="px-6 py-4">{item.purchaseQuantity} {item.unit}</td>
+                   <td className="px-6 py-4">{item.yieldPercent}%</td>
+                   <td className="px-6 py-4 font-black">{formatRupiah(calculateEffectiveUnitCost(item))} / {item.unit}</td>
+-                  <td className="px-6 py-4"><span className={`rounded-lg px-2.5 py-1 text-xs font-black ${item.active ? "bg-emerald-50 text-emerald-700" : "bg-black/5 text-black/45"}`}>{item.active ? "Aktif" : "Nonaktif"}</span></td>
+-                  <td className="px-6 py-4"><div className="flex justify-end gap-1"><button onClick={() => startEdit(item)} className="rounded-lg p-2 hover:bg-black/5" aria-label={`Edit ${item.name}`}><Pencil className="size-4" /></button><button onClick={() => remove(item)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Hapus ${item.name}`}><Trash2 className="size-4" /></button></div></td>
++                  <td className="px-6 py-4"><span className={`rounded-lg px-2.5 py-1 text-xs font-black ${item.active ? "bg-emerald-50 text-emerald-700" : "bg-black/5 text-black/55"}`}>{item.active ? "Bisa dipakai" : "Disembunyikan"}</span></td>
++                  <td className="px-6 py-4"><div className="flex justify-end gap-1"><button onClick={() => startEdit(item)} className="rounded-lg p-2 hover:bg-black/5" aria-label={`Ubah ${item.name}`}><Pencil className="size-4" /></button><button onClick={() => remove(item)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Hapus ${item.name}`}><Trash2 className="size-4" /></button></div></td>
+                 </tr>
+               ))}
+-              {!items.length && <tr><td colSpan={8} className="px-6 py-12 text-center text-black/40">Belum ada bahan baku.</td></tr>}
++              {!items.length && <tr><td colSpan={8} className="px-6 py-12 text-center text-black/50">Belum ada bahan. Gunakan form di atas untuk menambahkan bahan pertama.</td></tr>}
+             </tbody>
+           </table>
+         </div>
+@@ -274,23 +276,24 @@ function Input({ label, value, onChange, required = true, placeholder }: { label
+ 
+ function AutoSkuField({ value }: { value: string }) {
+   return (
+-    <label className="admin-label">SKU bahan
+-      <div className="admin-field flex min-h-12 items-center bg-black/[.025] font-mono text-sm font-bold text-black/55">
+-        {value || "Otomatis saat bahan disimpan"}
++    <label className="admin-label">Kode barang
++      <div className="admin-field flex min-h-12 items-center bg-black/[.025] font-mono text-sm font-bold text-black/60">
++        {value || "Dibuat otomatis setelah disimpan"}
+       </div>
+-      <span className="text-[11px] font-normal leading-4 text-black/40">Format mengikuti jenis bahan, nama, dan ID unik. SKU tersimpan tidak berubah saat nama diedit.</span>
++      <span className="text-xs font-normal leading-5 text-black/50">Tidak perlu diisi. Kode ini dipakai sistem untuk membedakan setiap bahan.</span>
+     </label>
+   );
+ }
+ 
+-function NumberField({ label, value, onChange, min = 0, max, step = "1", prefix, suffix, disabled = false }: { label: string; value: number; onChange: (value: number) => void; min?: number; max?: number; step?: string; prefix?: string; suffix?: string; disabled?: boolean }) {
++function NumberField({ label, value, onChange, min = 0, max, step = "1", prefix, suffix, disabled = false, note }: { label: string; value: number; onChange: (value: number) => void; min?: number; max?: number; step?: string; prefix?: string; suffix?: string; disabled?: boolean; note?: string }) {
+   return (
+     <label className="admin-label">{label}
+-      <div className={`admin-field flex items-center px-3 py-0 ${disabled ? "bg-black/[.035] text-black/45" : ""}`}>
+-        {prefix && <span className="text-xs font-bold text-black/35">{prefix}</span>}
++      <div className={`admin-field flex items-center px-3 py-0 ${disabled ? "bg-black/[.035] text-black/50" : ""}`}>
++        {prefix && <span className="text-xs font-bold text-black/45">{prefix}</span>}
+         <input required disabled={disabled} type="number" inputMode="decimal" min={min} max={max} step={step} value={value} onFocus={(event) => event.currentTarget.select()} onChange={(event) => onChange(Number(event.target.value))} className="min-w-0 flex-1 bg-transparent px-2 py-3 font-normal outline-none disabled:cursor-not-allowed" />
+-        {suffix && <span className="text-xs font-bold text-black/35">{suffix}</span>}
++        {suffix && <span className="text-xs font-bold text-black/45">{suffix}</span>}
+       </div>
++      {note && <span className="text-xs font-normal leading-5 text-black/50">{note}</span>}
+     </label>
+   );
+ }
+diff --git a/src/app/admin/(protected)/page.tsx b/src/app/admin/(protected)/page.tsx
+index 6c6cb0f..0df206e 100644
+--- a/src/app/admin/(protected)/page.tsx
++++ b/src/app/admin/(protected)/page.tsx
+@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
+         setProducts(productData);
+         setSettings(settingData);
+       })
+-      .catch((cause) => setError(cause instanceof Error ? cause.message : "Data dashboard gagal dimuat."))
++      .catch((cause) => setError(cause instanceof Error ? cause.message : "Ringkasan usaha belum berhasil dimuat. Coba muat ulang halaman."))
+       .finally(() => setLoading(false));
+   }, []);
+ 
+@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
+ 
+   const costComposition = [
+     {
+-      label: "Bahan produksi",
++      label: "Bahan minuman/makanan",
+       value: average((row) => (row.hpp.rawProductionMaterialCostPerBatch + row.hpp.processLossCostPerBatch) / Math.max(1, row.variant.batchYield))
+     },
+     {
+@@ -71,51 +71,51 @@ export default function AdminDashboardPage() {
+       value: average((row) => row.hpp.packagingCostPerBatch / Math.max(1, row.variant.batchYield))
+     },
+     {
+-      label: "Operasional variabel",
++      label: "Upah, listrik, dan biaya sekali produksi",
+       value: average((row) => (row.hpp.laborCostPerBatch + row.hpp.utilityCostPerBatch + row.hpp.otherVariableCostPerBatch) / Math.max(1, row.variant.batchYield))
+     },
+-    { label: "Overhead tetap", value: average((row) => row.hpp.fixedOverheadPerServing) }
++    { label: "Bagian biaya bulanan", value: average((row) => row.hpp.fixedOverheadPerServing) }
+   ];
+   const maxComposition = Math.max(1, ...costComposition.map((item) => item.value));
+ 
+   const cards = [
+-    { icon: GlassWater, label: "Produk aktif", value: String(products.filter((product) => product.active).length), note: `${activeRows.length} varian aktif` },
+-    { icon: Boxes, label: "Bahan aktif", value: String(ingredients.filter((ingredient) => ingredient.active).length), note: `${ingredients.length} total master` },
+-    { icon: CircleDollarSign, label: "Rata-rata HPP", value: formatRupiah(averageHpp), note: "per varian aktif" },
+-    { icon: TrendingUp, label: "Rata-rata margin", value: `${averageMargin.toFixed(1)}%`, note: `target ${settings.targetMarginPercent}%` }
++    { icon: GlassWater, label: "Produk di katalog", value: String(products.filter((product) => product.active).length), note: `${activeRows.length} pilihan produk ditampilkan` },
++    { icon: Boxes, label: "Bahan yang bisa dipakai", value: String(ingredients.filter((ingredient) => ingredient.active).length), note: `${ingredients.length} data bahan tersimpan` },
++    { icon: CircleDollarSign, label: "Rata-rata modal per gelas", value: formatRupiah(averageHpp), note: "HPP pilihan produk yang ditampilkan" },
++    { icon: TrendingUp, label: "Rata-rata keuntungan", value: `${averageMargin.toFixed(1)}%`, note: `target usaha ${settings.targetMarginPercent}%` }
+   ];
+ 
+   return (
+     <section>
+       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+         <div>
+-          <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Dashboard / Ringkasan</p>
+-          <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em] text-[#17130f]">Ringkasan bisnis</h1>
+-          <p className="mt-2 max-w-2xl text-sm leading-6 text-black/50">Angka di bawah dihitung dari harga bahan terbaru, resep bersih per batch, susut proses, serta alokasi overhead.</p>
++          <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Ringkasan usaha</p>
++          <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em] text-[#17130f]">Kondisi modal dan harga jual</h1>
++          <p className="mt-2 max-w-2xl text-sm leading-6 text-black/65">Semua angka dihitung dari harga bahan terbaru, resep, jumlah gelas yang dihasilkan, dan biaya bulanan.</p>
+         </div>
+         <div className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm shadow-sm">
+-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-black/35">Status perhitungan</p>
+-          <p className="mt-1 flex items-center gap-2 font-bold"><PackageCheck className="size-4 text-[#f15a16]" /> {loading ? "Memuat data..." : `${activeRows.length} varian diaudit`}</p>
++          <p className="text-[11px] font-bold uppercase tracking-[.14em] text-black/45">Status pemeriksaan</p>
++          <p className="mt-1 flex items-center gap-2 font-bold"><PackageCheck className="size-4 text-[#f15a16]" /> {loading ? "Sedang memuat data..." : `${activeRows.length} pilihan produk sudah diperiksa`}</p>
+         </div>
+       </div>
+ 
+-      {error && <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</p>}
++      {error && <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700">{error}</p>}
+ 
+       <div className="mt-6 flex flex-col gap-5 rounded-2xl border border-[#efc7aa] bg-[#fff8f1] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+         <div className="flex items-start gap-4">
+           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#f15a16] text-white"><BookOpenCheck className="size-5" /></span>
+           <div>
+-            <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#d84909]">Panduan cepat</p>
+-            <h2 className="mt-1 font-display text-2xl font-bold">Urutan setup HPP yang benar</h2>
+-            <p className="mt-2 text-sm leading-6 text-black/50">Mulai dari bahan, lanjut biaya tetap, lalu susun resep per batch. Jangan mengisi produk sebelum master bahan siap.</p>
+-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-bold text-black/55">
++            <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#b83b05]">Mulai dari sini</p>
++            <h2 className="mt-1 font-display text-2xl font-bold">Urutan pengisian yang paling aman</h2>
++            <p className="mt-2 text-sm leading-6 text-black/65">Masukkan bahan, lanjut biaya bulanan, lalu buat produk dan resep. Urutan ini membantu mencegah modal yang salah.</p>
++            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm font-bold text-black/65">
+               <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="size-4 text-[#f15a16]" /> Bahan & kemasan</span>
+-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="size-4 text-[#f15a16]" /> Overhead & margin</span>
++              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="size-4 text-[#f15a16]" /> Biaya bulanan & target keuntungan</span>
+               <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="size-4 text-[#f15a16]" /> Produk & resep</span>
+             </div>
+           </div>
+         </div>
+-        <Link href="/admin/panduan" className="admin-button-primary shrink-0">Buka panduan lengkap <ArrowUpRight className="size-4" /></Link>
++        <Link href="/admin/panduan" className="admin-button-primary shrink-0">Lihat cara menggunakan <ArrowUpRight className="size-4" /></Link>
+       </div>
+ 
+       <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+@@ -123,9 +123,9 @@ export default function AdminDashboardPage() {
+           <article key={label} className="admin-card p-5">
+             <div className="flex items-start justify-between gap-4">
+               <div>
+-                <p className="text-xs font-bold text-black/40">{label}</p>
++                <p className="text-sm font-bold text-black/55">{label}</p>
+                 <p className="mt-2 text-2xl font-black tracking-tight text-[#17130f]">{value}</p>
+-                <p className="mt-1 text-[11px] text-black/35">{note}</p>
++                <p className="mt-1 text-xs leading-5 text-black/50">{note}</p>
+               </div>
+               <span className="grid size-9 place-items-center rounded-lg bg-[#fff0e7] text-[#f15a16]"><Icon className="size-[18px]" /></span>
+             </div>
+@@ -137,17 +137,17 @@ export default function AdminDashboardPage() {
+         <article className="admin-card p-5 sm:p-6">
+           <div className="flex items-center justify-between gap-4">
+             <div>
+-              <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Komposisi biaya</p>
+-              <h2 className="mt-1 font-display text-2xl font-bold">Rata-rata biaya per porsi</h2>
++              <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Isi modal satu gelas</p>
++              <h2 className="mt-1 font-display text-2xl font-bold">Rata-rata biaya per gelas</h2>
+             </div>
+-            <span className="rounded-lg bg-[#f7f2ea] px-3 py-2 text-xs font-bold text-black/45">Varian aktif</span>
++            <span className="rounded-lg bg-[#f7f2ea] px-3 py-2 text-xs font-bold text-black/55">Produk yang tampil</span>
+           </div>
+ 
+           <div className="mt-7 space-y-5">
+             {costComposition.map((item) => (
+               <div key={item.label}>
+                 <div className="mb-2 flex items-center justify-between gap-4 text-sm">
+-                  <span className="font-semibold text-black/60">{item.label}</span>
++                  <span className="font-semibold text-black/70">{item.label}</span>
+                   <span className="font-black">{formatRupiah(item.value)}</span>
+                 </div>
+                 <div className="h-2.5 overflow-hidden rounded-full bg-[#eee6dc]">
+@@ -159,16 +159,16 @@ export default function AdminDashboardPage() {
+ 
+           <div className="mt-7 grid gap-3 sm:grid-cols-3">
+             <div className="rounded-xl bg-[#17130f] p-4 text-white">
+-              <p className="text-xs text-white/50">HPP rata-rata</p>
++              <p className="text-sm text-white/65">Rata-rata modal (HPP)</p>
+               <p className="mt-1 text-xl font-black">{formatRupiah(averageHpp)}</p>
+             </div>
+             <div className="rounded-xl bg-[#fff0e7] p-4">
+-              <p className="text-xs text-black/40">Margin rata-rata</p>
++              <p className="text-sm text-black/55">Rata-rata keuntungan</p>
+               <p className="mt-1 text-xl font-black text-[#d84909]">{averageMargin.toFixed(1)}%</p>
+             </div>
+             <div className="rounded-xl border border-black/10 bg-white p-4">
+-              <p className="text-xs text-black/40">Perlu ditinjau</p>
+-              <p className="mt-1 text-xl font-black">{attentionRows.length} varian</p>
++              <p className="text-sm text-black/55">Perlu diperbaiki</p>
++              <p className="mt-1 text-xl font-black">{attentionRows.length} pilihan</p>
+             </div>
+           </div>
+         </article>
+@@ -177,8 +177,8 @@ export default function AdminDashboardPage() {
+           <div className="border-b border-black/10 p-5">
+             <div className="flex items-center justify-between gap-3">
+               <div>
+-                <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Audit cepat</p>
+-                <h2 className="mt-1 font-display text-2xl font-bold">Butuh perhatian</h2>
++                <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Pemeriksaan cepat</p>
++                <h2 className="mt-1 font-display text-2xl font-bold">Perlu diperhatikan</h2>
+               </div>
+               <AlertTriangle className="size-5 text-[#f15a16]" />
+             </div>
+@@ -188,7 +188,7 @@ export default function AdminDashboardPage() {
+               <div key={`${product.id}-${variant.id}`} className="flex items-center justify-between gap-4 p-4">
+                 <div className="min-w-0">
+                   <p className="truncate text-sm font-bold">{product.name}</p>
+-                  <p className="mt-0.5 truncate text-xs text-black/40">{variant.name} · {hpp.auditIssues[0] || `Margin di bawah ${settings.targetMarginPercent}%`}</p>
++                  <p className="mt-0.5 text-xs leading-5 text-black/55">{variant.name} · {hpp.auditIssues[0] || `Keuntungan masih di bawah target ${settings.targetMarginPercent}%`}</p>
+                 </div>
+                 <span className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-black ${hpp.currentMarginPercent < 0 ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}>
+                   {hpp.currentMarginPercent.toFixed(1)}%
+@@ -198,8 +198,8 @@ export default function AdminDashboardPage() {
+             {!attentionRows.length && (
+               <div className="p-7 text-center">
+                 <PackageCheck className="mx-auto size-7 text-emerald-600" />
+-                <p className="mt-3 text-sm font-bold">Semua varian aktif sehat.</p>
+-                <p className="mt-1 text-xs text-black/40">Tidak ada masalah formula atau margin.</p>
++                <p className="mt-3 text-sm font-bold">Semua harga sudah sesuai target.</p>
++                <p className="mt-1 text-sm leading-6 text-black/55">Tidak ada data resep atau harga yang perlu diperbaiki.</p>
+               </div>
+             )}
+           </div>
+@@ -209,31 +209,31 @@ export default function AdminDashboardPage() {
+       <div className="admin-card mt-5 overflow-hidden">
+         <div className="flex items-center justify-between gap-4 border-b border-black/10 p-5 sm:px-6">
+           <div>
+-            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Produk / varian</p>
+-            <h2 className="mt-1 font-display text-2xl font-bold">Performa harga</h2>
++            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Produk & pilihan ukuran</p>
++            <h2 className="mt-1 font-display text-2xl font-bold">Perbandingan modal dan harga jual</h2>
+           </div>
+-          <a href="/admin/produk" className="admin-button-secondary">Kelola produk <ArrowUpRight className="size-4" /></a>
++          <Link href="/admin/produk" className="admin-button-secondary">Kelola produk <ArrowUpRight className="size-4" /></Link>
+         </div>
+         <div className="overflow-x-auto">
+           <table className="w-full min-w-[900px] text-left text-sm">
+-            <thead className="bg-[#fbf8f3] text-[11px] uppercase tracking-[.08em] text-black/40">
+-              <tr><th className="px-6 py-3.5">Produk / varian</th><th className="px-6 py-3.5">Harga jual</th><th className="px-6 py-3.5">HPP penuh</th><th className="px-6 py-3.5">Saran harga</th><th className="px-6 py-3.5">Margin</th><th className="px-6 py-3.5">Status</th></tr>
++            <thead className="bg-[#fbf8f3] text-[11px] uppercase tracking-[.08em] text-black/50">
++              <tr><th className="px-6 py-3.5">Produk / pilihan</th><th className="px-6 py-3.5">Harga jual</th><th className="px-6 py-3.5">Modal per gelas</th><th className="px-6 py-3.5">Harga yang disarankan</th><th className="px-6 py-3.5">Keuntungan</th><th className="px-6 py-3.5">Kondisi</th></tr>
+             </thead>
+             <tbody>
+               {activeRows.map(({ product, variant, hpp }) => {
+                 const healthy = hpp.isValid && hpp.currentMarginPercent >= settings.targetMarginPercent;
+                 return (
+                   <tr key={`${product.id}-${variant.id}`} className="border-t border-black/10 hover:bg-[#fffaf5]">
+-                    <td className="px-6 py-4"><p className="font-bold">{product.name}</p><p className="mt-0.5 text-xs text-black/40">{variant.name}</p></td>
++                    <td className="px-6 py-4"><p className="font-bold">{product.name}</p><p className="mt-0.5 text-xs text-black/50">{variant.name}</p></td>
+                     <td className="px-6 py-4">{formatRupiah(variant.sellingPrice)}</td>
+                     <td className="px-6 py-4 font-bold">{formatRupiah(hpp.hppPerServing)}</td>
+                     <td className="px-6 py-4">{formatRupiah(hpp.suggestedSellingPrice)}</td>
+                     <td className="px-6 py-4 font-black">{hpp.currentMarginPercent.toFixed(1)}%</td>
+-                    <td className="px-6 py-4"><span className={`rounded-lg px-2.5 py-1 text-xs font-black ${healthy ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{healthy ? "Sehat" : "Tinjau"}</span></td>
++                    <td className="px-6 py-4"><span className={`rounded-lg px-2.5 py-1 text-xs font-black ${healthy ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{healthy ? "Sesuai target" : "Perlu diperiksa"}</span></td>
+                   </tr>
+                 );
+               })}
+-              {!activeRows.length && <tr><td colSpan={6} className="px-6 py-12 text-center text-black/40">Belum ada produk dan varian aktif.</td></tr>}
++              {!activeRows.length && <tr><td colSpan={6} className="px-6 py-12 text-center text-black/50">Belum ada produk yang ditampilkan di katalog.</td></tr>}
+             </tbody>
+           </table>
+         </div>
+diff --git a/src/app/admin/(protected)/panduan/page.tsx b/src/app/admin/(protected)/panduan/page.tsx
+index 31879a1..a137586 100644
+--- a/src/app/admin/(protected)/panduan/page.tsx
++++ b/src/app/admin/(protected)/panduan/page.tsx
+@@ -14,44 +14,79 @@ import { GuideCheck } from "@/components/admin-guide-panel";
+ const workflow = [
+   {
+     step: "01",
+-    title: "Buat master bahan dan kemasan",
+-    description: "Masukkan harga beli, jumlah pembelian dalam satuan resep, serta yield bahan yang benar.",
++    title: "Masukkan bahan dan kemasan",
++    description: "Catat harga beli dan jumlah barang sesuai satuan yang nanti dipakai di resep, misalnya gram, ml, atau pcs.",
+     href: "/admin/bahan",
+-    action: "Kelola bahan",
++    action: "Buka bahan & kemasan",
+     icon: Boxes
+   },
+   {
+     step: "02",
+-    title: "Atur biaya tetap dan target margin",
+-    description: "Isi sewa, gaji tetap, penyusutan, target porsi bulanan, margin, dan pembulatan harga.",
++    title: "Masukkan biaya bulanan dan target keuntungan",
++    description: "Catat sewa, gaji tetap, biaya alat, perkiraan gelas terjual per bulan, dan target keuntungan.",
+     href: "/admin/pengaturan-hpp",
+-    action: "Atur HPP",
++    action: "Buka biaya & harga jual",
+     icon: Calculator
+   },
+   {
+     step: "03",
+-    title: "Buat produk, varian, dan resep",
+-    description: "Resep dicatat per batch. Masukkan jumlah porsi layak jual, bahan, kemasan, serta biaya produksi batch.",
++    title: "Buat produk dan resep",
++    description: "Untuk setiap pilihan ukuran, isi bahan yang dipakai dalam sekali produksi dan berapa gelas yang dihasilkan.",
+     href: "/admin/produk/tambah",
+     action: "Tambah produk",
+     icon: PackageOpen
+   },
+   {
+     step: "04",
+-    title: "Audit HPP dan harga jual",
+-    description: "Bandingkan HPP penuh, harga saran, margin saat ini, dan peringatan audit sebelum produk dipublikasikan.",
++    title: "Periksa modal dan harga jual",
++    description: "Lihat modal satu gelas, keuntungan dari harga jual sekarang, serta saran harga dari sistem.",
+     href: "/admin",
+-    action: "Buka ringkasan",
++    action: "Buka ringkasan usaha",
+     icon: CircleDollarSign
+   }
+ ];
+ 
++const terms = [
++  {
++    term: "HPP",
++    meaning: "Total modal untuk membuat satu gelas atau satu porsi. HPP belum termasuk keuntungan yang ingin diambil."
++  },
++  {
++    term: "Bagian yang bisa dipakai",
++    meaning: "Persentase bahan yang benar-benar dapat digunakan setelah kulit, biji, atau bagian rusak dibuang. Di data teknis disebut yield."
++  },
++  {
++    term: "Sekali produksi",
++    meaning: "Satu kali membuat resep. Contoh: satu blender menghasilkan 4 gelas. Di data teknis disebut batch."
++  },
++  {
++    term: "Tambahan karena sisa atau tumpah",
++    meaning: "Tambahan bahan untuk mengganti bahan yang tertinggal di blender, menempel di alat, atau tumpah saat produksi."
++  },
++  {
++    term: "Biaya bulanan per gelas",
++    meaning: "Bagian sewa, gaji tetap, dan biaya alat yang dibebankan ke setiap gelas. Di data teknis disebut overhead."
++  },
++  {
++    term: "Keuntungan (%)",
++    meaning: "Persentase keuntungan yang tersisa dari harga jual setelah HPP dikurangi. Di data teknis disebut margin."
++  },
++  {
++    term: "Kode barang",
++    meaning: "Kode otomatis untuk membedakan bahan dan produk. Pengguna tidak perlu membuatnya sendiri. Di data teknis disebut SKU."
++  },
++  {
++    term: "Pilihan produk",
++    meaning: "Ukuran atau versi produk, misalnya Regular dan Large. Di data teknis disebut varian."
++  }
++];
++
+ export default function AdminGuidePage() {
+   return (
+     <section>
+-      <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Pusat bantuan / HPP</p>
+-      <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em] text-[#17130f]">Panduan penggunaan sistem</h1>
+-      <p className="mt-2 max-w-3xl text-sm leading-6 text-black/50">Ikuti urutan ini agar HPP tidak salah karena satuan campur, yield ganda, process loss ganda, atau overhead yang dihitung dua kali.</p>
++      <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Pusat bantuan</p>
++      <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em] text-[#17130f]">Cara menggunakan sistem</h1>
++      <p className="mt-2 max-w-3xl text-sm leading-6 text-black/65">Ikuti urutan di bawah. Kamu tidak perlu memahami rumus akuntansi; cukup isi data pembelian dan resep sesuai kondisi sebenarnya.</p>
+ 
+       <div className="mt-7 overflow-hidden rounded-2xl bg-[#17130f] text-white shadow-[0_20px_50px_rgba(23,19,15,.14)]">
+         <div className="grid gap-6 p-6 lg:grid-cols-[1fr_auto] lg:items-center lg:p-8">
+@@ -59,13 +94,13 @@ export default function AdminGuidePage() {
+             <div className="flex items-center gap-3">
+               <span className="grid size-11 place-items-center rounded-xl bg-[#f15a16]"><BookOpenCheck className="size-5" /></span>
+               <div>
+-                <p className="text-xs font-black uppercase tracking-[.16em] text-[#ff9d6e]">Urutan wajib</p>
+-                <h2 className="mt-1 font-display text-2xl font-bold">Bahan → biaya tetap → resep → audit harga</h2>
++                <p className="text-xs font-black uppercase tracking-[.16em] text-[#ff9d6e]">Urutan yang disarankan</p>
++                <h2 className="mt-1 font-display text-2xl font-bold">Bahan → biaya bulanan → resep → periksa harga</h2>
+               </div>
+             </div>
+-            <p className="mt-4 max-w-3xl text-sm leading-6 text-white/60">Jangan mulai dari produk sebelum harga bahan dan pengaturan overhead tersedia. HPP produk selalu membaca data master terbaru.</p>
++            <p className="mt-4 max-w-3xl text-sm leading-6 text-white/75">Mulai dari bahan terlebih dahulu. Sistem membutuhkan harga bahan sebelum dapat menghitung modal produk dengan benar.</p>
+           </div>
+-          <Link href="/admin/bahan" className="admin-button-primary bg-white text-[#17130f] hover:bg-[#f15a16] hover:text-white">Mulai langkah pertama <ArrowRight className="size-4" /></Link>
++          <Link href="/admin/bahan" className="admin-button-primary bg-white text-[#17130f] hover:bg-[#f15a16] hover:text-white">Mulai dari bahan <ArrowRight className="size-4" /></Link>
+         </div>
+       </div>
+ 
+@@ -75,9 +110,9 @@ export default function AdminGuidePage() {
+             <div className="flex items-start gap-4">
+               <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#fff0e7] text-[#f15a16]"><Icon className="size-5" /></span>
+               <div className="min-w-0 flex-1">
+-                <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#f15a16]">Langkah {step}</p>
++                <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#b83b05]">Langkah {step}</p>
+                 <h2 className="mt-1 font-display text-2xl font-bold">{title}</h2>
+-                <p className="mt-2 text-sm leading-6 text-black/50">{description}</p>
++                <p className="mt-2 text-sm leading-6 text-black/65">{description}</p>
+                 <Link href={href} className="mt-4 inline-flex items-center gap-2 text-sm font-black text-[#d84909] hover:text-[#17130f]">{action} <ArrowRight className="size-4" /></Link>
+               </div>
+             </div>
+@@ -87,46 +122,59 @@ export default function AdminGuidePage() {
+ 
+       <div className="mt-5 grid gap-5 xl:grid-cols-[1.1fr_.9fr]">
+         <article className="admin-card p-5 sm:p-6">
+-          <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Contoh pengisian bahan</p>
+-          <h2 className="mt-1 font-display text-2xl font-bold">Mangga dibeli 1 kg seharga Rp30.000</h2>
++          <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Contoh bahan</p>
++          <h2 className="mt-1 font-display text-2xl font-bold">Mangga 1 kg dibeli seharga Rp30.000</h2>
+           <div className="mt-5 grid gap-3 sm:grid-cols-2">
+-            <ExampleRow label="Satuan dasar" value="gram" />
++            <ExampleRow label="Satuan resep" value="gram" />
+             <ExampleRow label="Harga beli" value="Rp30.000" />
+             <ExampleRow label="Jumlah pembelian" value="1.000 gram" />
+-            <ExampleRow label="Yield bersih" value="70%" />
++            <ExampleRow label="Bagian yang bisa dipakai" value="70%" />
+           </div>
+           <div className="mt-4 rounded-xl bg-[#17130f] p-5 text-white">
+-            <p className="text-xs text-white/50">Biaya efektif per gram</p>
+-            <p className="mt-2 text-2xl font-black">Rp30.000 ÷ (1.000 × 70%) = Rp42,86</p>
++            <p className="text-sm text-white/65">Biaya mangga yang benar-benar bisa dipakai</p>
++            <p className="mt-2 text-2xl font-black">Rp30.000 ÷ 700 gram = Rp42,86 per gram</p>
+           </div>
+-          <p className="mt-4 text-xs leading-5 text-black/45">Yield dipakai untuk kulit, biji, trimming, atau bagian bahan yang memang tidak dapat digunakan. Untuk cup dan sedotan, yield selalu 100%.</p>
++          <p className="mt-4 text-sm leading-6 text-black/60">Dari 1.000 gram mangga, hanya 700 gram yang bisa dipakai karena kulit dan biji dibuang. Untuk cup dan sedotan, bagian yang bisa dipakai selalu 100%.</p>
+         </article>
+ 
+         <article className="admin-card p-5 sm:p-6">
+-          <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Checklist sebelum publish</p>
+-          <h2 className="mt-1 font-display text-2xl font-bold">Pastikan semua data ini sudah benar</h2>
++          <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Sebelum produk ditampilkan</p>
++          <h2 className="mt-1 font-display text-2xl font-bold">Periksa enam hal ini</h2>
+           <ul className="mt-5 space-y-2">
+-            <GuideCheck>Satuan pembelian sama dengan satuan yang dipakai pada resep.</GuideCheck>
+-            <GuideCheck>Yield bahan berdasarkan hasil timbang bersih, bukan perkiraan asal.</GuideCheck>
+-            <GuideCheck>Hasil batch adalah jumlah porsi yang benar-benar layak dijual.</GuideCheck>
+-            <GuideCheck>Process loss hanya diisi jika resep menggunakan kebutuhan bersih.</GuideCheck>
+-            <GuideCheck>Gaji atau listrik tidak dimasukkan sekaligus sebagai biaya bulanan dan biaya per batch.</GuideCheck>
+-            <GuideCheck>Harga jual menghasilkan margin minimal sesuai target bisnis.</GuideCheck>
++            <GuideCheck>Satuan pembelian sama dengan satuan yang dipakai di resep.</GuideCheck>
++            <GuideCheck>Bagian bahan yang bisa dipakai berdasarkan hasil timbang, bukan tebakan.</GuideCheck>
++            <GuideCheck>Jumlah hasil produksi adalah gelas yang benar-benar layak dijual.</GuideCheck>
++            <GuideCheck>Tambahan bahan karena sisa atau tumpah tidak dihitung dua kali.</GuideCheck>
++            <GuideCheck>Gaji, listrik, dan biaya lain tidak dimasukkan di dua tempat sekaligus.</GuideCheck>
++            <GuideCheck>Harga jual memberikan keuntungan sesuai target usaha.</GuideCheck>
+           </ul>
+         </article>
+       </div>
+ 
+       <div className="mt-5 grid gap-5 lg:grid-cols-3">
+-        <FormulaCard title="Biaya bahan efektif" formula="Harga beli ÷ (jumlah beli × yield)" />
+-        <FormulaCard title="HPP penuh per porsi" formula="Biaya variabel batch ÷ hasil batch + overhead/porsi" />
+-        <FormulaCard title="Harga jual berdasarkan margin" formula="HPP ÷ (1 − target margin)" />
++        <FormulaCard title="Biaya bahan per satuan" explanation="Harga beli dibagi jumlah bahan yang benar-benar bisa dipakai." />
++        <FormulaCard title="Modal satu gelas (HPP)" explanation="Biaya bahan, kemasan, proses, dan bagian biaya bulanan dijumlahkan." />
++        <FormulaCard title="Saran harga jual" explanation="Sistem menambahkan ruang keuntungan sesuai target yang kamu tentukan." />
+       </div>
+ 
++      <article className="admin-card mt-5 p-5 sm:p-6">
++        <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Kamus istilah</p>
++        <h2 className="mt-1 font-display text-2xl font-bold">Arti istilah yang muncul di sistem</h2>
++        <div className="mt-5 grid gap-3 md:grid-cols-2">
++          {terms.map((item) => (
++            <div key={item.term} className="rounded-xl border border-black/[.07] bg-[#fbf8f3] p-4">
++              <p className="font-black text-[#17130f]">{item.term}</p>
++              <p className="mt-1 text-sm leading-6 text-black/60">{item.meaning}</p>
++            </div>
++          ))}
++        </div>
++      </article>
++
+       <div className="mt-5 flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">
+         <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-700" />
+         <div>
+-          <h2 className="font-black text-amber-900">Bedakan yield bahan dan process loss</h2>
+-          <p className="mt-2 text-sm leading-6 text-amber-900/70"><strong>Yield bahan</strong> terjadi sebelum bahan masuk resep, misalnya kulit dan biji. <strong>Process loss</strong> terjadi saat produksi, misalnya tertinggal di blender atau tumpah. Jangan mencatat kerugian yang sama pada keduanya.</p>
++          <h2 className="font-black text-amber-900">Jangan hitung kehilangan bahan dua kali</h2>
++          <p className="mt-2 text-sm leading-6 text-amber-900/75">Bagian kulit dan biji dicatat saat memasukkan bahan. Sisa di blender atau bahan yang tumpah dicatat di resep produk. Satu kehilangan hanya boleh dicatat di salah satu tempat.</p>
+         </div>
+       </div>
+     </section>
+@@ -136,20 +184,20 @@ export default function AdminGuidePage() {
+ function ExampleRow({ label, value }: { label: string; value: string }) {
+   return (
+     <div className="rounded-xl border border-black/[.07] bg-[#fbf8f3] p-4">
+-      <p className="text-xs font-bold text-black/40">{label}</p>
++      <p className="text-sm font-bold text-black/50">{label}</p>
+       <p className="mt-1 font-black">{value}</p>
+     </div>
+   );
+ }
+ 
+-function FormulaCard({ title, formula }: { title: string; formula: string }) {
++function FormulaCard({ title, explanation }: { title: string; explanation: string }) {
+   return (
+     <article className="admin-card p-5">
+       <div className="flex items-center gap-3">
+         <span className="grid size-9 place-items-center rounded-lg bg-[#fff0e7] text-[#f15a16]"><CheckCircle2 className="size-4" /></span>
+         <h2 className="font-black">{title}</h2>
+       </div>
+-      <p className="mt-4 rounded-xl bg-[#f7f2ea] p-4 font-mono text-xs font-bold leading-5 text-black/65">{formula}</p>
++      <p className="mt-4 rounded-xl bg-[#f7f2ea] p-4 text-sm font-semibold leading-6 text-black/65">{explanation}</p>
+     </article>
+   );
+ }
+diff --git a/src/app/admin/(protected)/pengaturan-hpp/page.tsx b/src/app/admin/(protected)/pengaturan-hpp/page.tsx
+index 179b13b..2608d87 100644
+--- a/src/app/admin/(protected)/pengaturan-hpp/page.tsx
++++ b/src/app/admin/(protected)/pengaturan-hpp/page.tsx
+@@ -14,7 +14,7 @@ export default function HppSettingsPage() {
+   const [saving, setSaving] = useState(false);
+ 
+   useEffect(() => {
+-    getHppSettings().then(setSettings).catch(() => setMessage("Pengaturan belum dapat dimuat."));
++    getHppSettings().then(setSettings).catch(() => setMessage("Pengaturan biaya belum berhasil dimuat. Coba muat ulang halaman."));
+   }, []);
+ 
+   async function submit(event: FormEvent) {
+@@ -29,9 +29,9 @@ export default function HppSettingsPage() {
+     setSaving(true);
+     try {
+       await saveHppSettings(settings);
+-      setMessage("Pengaturan HPP berhasil disimpan.");
++      setMessage("Pengaturan biaya dan harga jual berhasil disimpan.");
+     } catch (cause) {
+-      setMessage(cause instanceof Error ? cause.message : "Pengaturan gagal disimpan.");
++      setMessage(cause instanceof Error ? cause.message : "Pengaturan belum berhasil disimpan. Coba lagi.");
+     } finally {
+       setSaving(false);
+     }
+@@ -42,81 +42,81 @@ export default function HppSettingsPage() {
+ 
+   return (
+     <section>
+-      <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Kebijakan biaya / HPP</p>
+-      <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em]">Pengaturan perhitungan</h1>
+-      <p className="mt-2 max-w-3xl text-sm leading-6 text-black/50">Atur biaya tetap, kapasitas normal, target margin, dan pembulatan harga. Pajak keluaran dan laba tidak dimasukkan ke HPP.</p>
++      <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Biaya & harga jual</p>
++      <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em]">Atur biaya bulanan dan target keuntungan</h1>
++      <p className="mt-2 max-w-3xl text-sm leading-6 text-black/65">Masukkan biaya yang tetap dibayar setiap bulan. Sistem akan membagi biaya tersebut ke setiap gelas untuk mendapatkan modal yang lebih lengkap.</p>
+ 
+       <AdminGuidePanel
+         className="mt-6"
+         defaultOpen
+-        eyebrow="Panduan langkah 2"
+-        title="Alokasikan overhead menggunakan kapasitas normal"
+-        description="Biaya bulanan dibagi ke target porsi realistis. Semakin kecil target porsi, semakin besar overhead yang dibebankan ke setiap gelas."
++        eyebrow="Langkah 2 dari 4"
++        title="Bagikan biaya bulanan ke setiap gelas"
++        description="Contoh: jika biaya bulanan Rp3.000.000 dan biasanya terjual 3.000 gelas, maka setiap gelas mendapat bagian biaya bulanan Rp1.000."
+         steps={[
+-          { title: "Isi biaya tetap bulanan", description: "Masukkan sewa, gaji tetap, penyusutan, dan biaya lain yang tetap muncul walaupun produksi turun." },
+-          { title: "Tentukan target porsi normal", description: "Gunakan rata-rata penjualan atau target yang masuk akal, bukan kapasitas maksimum blender." },
+-          { title: "Tentukan target margin", description: "Sistem memakai rumus harga jual = HPP ÷ (1 − margin), bukan HPP ditambah markup biasa." },
+-          { title: "Periksa overhead per porsi", description: "Panel formula di kanan memperlihatkan dampak seluruh pengaturan secara langsung." }
++          { title: "Isi biaya bulanan", description: "Masukkan sewa, gaji tetap, cadangan penggantian alat, dan biaya lain yang tetap dibayar." },
++          { title: "Isi perkiraan penjualan", description: "Masukkan jumlah gelas yang biasanya terjual dalam satu bulan. Gunakan angka yang realistis." },
++          { title: "Tentukan target keuntungan", description: "Contoh 40% berarti dari harga jual, sekitar 40% diharapkan menjadi keuntungan kotor setelah modal dikurangi." },
++          { title: "Periksa hasil di sebelah kanan", description: "Sistem langsung menampilkan total biaya bulanan dan bagian biaya untuk satu gelas." }
+         ]}
+-        note="Jangan memasukkan biaya yang sama dua kali. Contoh: gaji pegawai produksi dicatat sebagai gaji tetap bulanan atau tenaga kerja per batch sesuai perilakunya, bukan keduanya."
++        note="Jangan masukkan biaya yang sama di dua tempat. Misalnya gaji pegawai dicatat sebagai gaji bulanan atau upah sekali produksi, bukan keduanya."
+       />
+ 
+-      {message && <p className="mt-5 rounded-xl border border-[#f3c7a9] bg-[#fff4eb] p-4 text-sm font-bold text-[#9a3b0d]">{message}</p>}
++      {message && <p className="mt-5 rounded-xl border border-[#f3c7a9] bg-[#fff4eb] p-4 text-sm font-bold leading-6 text-[#9a3b0d]">{message}</p>}
+ 
+       <div className="mt-7 grid gap-5 xl:grid-cols-[1fr_360px]">
+         <form onSubmit={submit} className="admin-card p-5 sm:p-6">
+           <div className="border-b border-black/10 pb-5">
+-            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Langkah 2</p>
+-            <h2 className="mt-1 font-display text-2xl font-bold">Biaya tetap bulanan</h2>
+-            <p className="mt-2 text-xs leading-5 text-black/40">Jangan memasukkan biaya yang sudah dicatat sebagai tenaga kerja atau utilitas per batch.</p>
++            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Bagian A</p>
++            <h2 className="mt-1 font-display text-2xl font-bold">Biaya yang dibayar setiap bulan</h2>
++            <p className="mt-2 text-sm leading-6 text-black/55">Isi biaya yang tetap muncul walaupun jumlah pesanan sedang sedikit.</p>
+           </div>
+ 
+           <div className="mt-6 grid gap-5 sm:grid-cols-2">
+-            <Field label="Sewa tempat" note="Sewa lokasi produksi atau outlet.">
++            <Field label="Sewa tempat" note="Sewa tempat produksi, kios, atau outlet per bulan.">
+               <NumberInput value={settings.monthlyRentCost} onChange={(value) => setSettings((current) => ({ ...current, monthlyRentCost: value }))} prefix="Rp" />
+             </Field>
+-            <Field label="Gaji tetap" note="Gaji bulanan yang tidak berubah mengikuti jumlah batch.">
++            <Field label="Gaji tetap bulanan" note="Gaji yang jumlahnya tetap walaupun produksi naik atau turun.">
+               <NumberInput value={settings.monthlyFixedPayrollCost} onChange={(value) => setSettings((current) => ({ ...current, monthlyFixedPayrollCost: value }))} prefix="Rp" />
+             </Field>
+-            <Field label="Penyusutan alat" note="Blender, freezer, sealer, dan alat produksi lain.">
++            <Field label="Cadangan penggantian alat" note="Bagian biaya blender, freezer, sealer, dan alat lain per bulan. Dalam akuntansi disebut penyusutan.">
+               <NumberInput value={settings.monthlyDepreciationCost} onChange={(value) => setSettings((current) => ({ ...current, monthlyDepreciationCost: value }))} prefix="Rp" />
+             </Field>
+-            <Field label="Biaya tetap lain" note="Internet, software, izin, dan biaya tetap sejenis.">
++            <Field label="Biaya bulanan lainnya" note="Contoh: internet, aplikasi kasir, izin, atau biaya tetap lain.">
+               <NumberInput value={settings.monthlyOtherFixedCost} onChange={(value) => setSettings((current) => ({ ...current, monthlyOtherFixedCost: value }))} prefix="Rp" />
+             </Field>
+           </div>
+ 
+           <div className="mt-8 border-b border-black/10 pb-5">
+-            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Langkah 3</p>
+-            <h2 className="mt-1 font-display text-2xl font-bold">Alokasi dan kebijakan harga</h2>
++            <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Bagian B</p>
++            <h2 className="mt-1 font-display text-2xl font-bold">Perkiraan penjualan dan harga</h2>
+           </div>
+           <div className="mt-6 grid gap-5 sm:grid-cols-2">
+-            <Field label="Target porsi per bulan" note="Pakai volume normal yang realistis, bukan kapasitas maksimum teoritis.">
+-              <NumberInput value={settings.monthlyTargetServings} min={1} step="1" onChange={(value) => setSettings((current) => ({ ...current, monthlyTargetServings: value }))} suffix="porsi" />
++            <Field label="Perkiraan gelas terjual per bulan" note="Gunakan rata-rata penjualan yang masuk akal, bukan kemampuan maksimum mesin.">
++              <NumberInput value={settings.monthlyTargetServings} min={1} step="1" onChange={(value) => setSettings((current) => ({ ...current, monthlyTargetServings: value }))} suffix="gelas" />
+             </Field>
+-            <Field label="Target gross margin" note="Harga saran = HPP ÷ (1 − margin).">
++            <Field label="Target keuntungan dari harga jual" note="Contoh: isi 40 untuk target keuntungan kotor 40% dari harga jual.">
+               <NumberInput value={settings.targetMarginPercent} min={0} max={99.99} step="0.01" onChange={(value) => setSettings((current) => ({ ...current, targetMarginPercent: value }))} suffix="%" />
+             </Field>
+-            <Field label="Pembulatan harga jual" note="Harga saran selalu dibulatkan ke atas sesuai kelipatan ini.">
++            <Field label="Pembulatan saran harga" note="Contoh: isi Rp500 agar saran harga menjadi Rp15.000, Rp15.500, Rp16.000, dan seterusnya.">
+               <NumberInput value={settings.priceRoundingStep} min={1} step="1" onChange={(value) => setSettings((current) => ({ ...current, priceRoundingStep: value }))} prefix="Rp" />
+             </Field>
+           </div>
+-          <button disabled={saving} className="admin-button-primary mt-7"><Save className="size-4" /> {saving ? "Menyimpan..." : "Simpan pengaturan"}</button>
++          <button disabled={saving} className="admin-button-primary mt-7"><Save className="size-4" /> {saving ? "Sedang menyimpan..." : "Simpan pengaturan"}</button>
+         </form>
+ 
+         <aside className="space-y-5">
+           <div className="overflow-hidden rounded-2xl bg-[#17130f] text-white shadow-[0_18px_45px_rgba(23,19,15,.16)]">
+             <div className="p-6">
+-              <p className="text-xs font-black uppercase tracking-[.16em] text-[#ff9d6e]">Formula aktif</p>
+-              <div className="mt-6 space-y-5 text-xs leading-5 text-white/60">
+-                <p><strong className="block text-sm text-white">Biaya bahan efektif</strong>Harga beli ÷ (jumlah beli × yield).</p>
+-                <p><strong className="block text-sm text-white">Koreksi susut proses</strong>Kebutuhan bersih bahan produksi ÷ (1 − process loss). Kemasan tidak dikoreksi.</p>
+-                <p><strong className="block text-sm text-white">HPP per porsi</strong>Biaya variabel batch ÷ hasil batch + overhead tetap per porsi.</p>
++              <p className="text-xs font-black uppercase tracking-[.16em] text-[#ff9d6e]">Cara sistem menghitung</p>
++              <div className="mt-6 space-y-5 text-sm leading-6 text-white/75">
++                <p><strong className="block text-white">Biaya bahan</strong>Harga beli dibagi jumlah bahan yang benar-benar bisa dipakai.</p>
++                <p><strong className="block text-white">Tambahan bahan saat produksi</strong>Sistem dapat menambah biaya untuk bahan yang tertinggal di alat atau tumpah.</p>
++                <p><strong className="block text-white">Modal satu gelas (HPP)</strong>Biaya bahan, kemasan, proses, dan bagian biaya bulanan dijumlahkan.</p>
+               </div>
+             </div>
+             <div className="grid gap-px bg-white/10">
+-              <div className="bg-white/[.04] p-5"><p className="text-xs text-white/45">Total biaya tetap bulanan</p><p className="mt-1 text-2xl font-black">{formatRupiah(monthlyFixedCosts)}</p></div>
+-              <div className="bg-[#f15a16] p-5"><p className="text-xs font-bold text-white/100">Overhead tetap per porsi</p><p className="mt-1 text-3xl font-black">{formatRupiah(overheadPerServing)}</p></div>
++              <div className="bg-white/[.04] p-5"><p className="text-sm text-white/65">Total biaya bulanan</p><p className="mt-1 text-2xl font-black">{formatRupiah(monthlyFixedCosts)}</p></div>
++              <div className="bg-[#f15a16] p-5"><p className="text-sm font-bold text-white">Bagian biaya bulanan untuk 1 gelas</p><p className="mt-1 text-3xl font-black">{formatRupiah(overheadPerServing)}</p></div>
+             </div>
+           </div>
+ 
+@@ -124,15 +124,15 @@ export default function HppSettingsPage() {
+             <div className="flex items-start gap-3">
+               <Info className="mt-0.5 size-5 shrink-0 text-[#f15a16]" />
+               <div>
+-                <h3 className="font-bold">Cegah double counting</h3>
+-                <p className="mt-2 text-xs leading-5 text-black/50">Gaji pegawai produksi jangan dimasukkan sekaligus ke gaji tetap dan tenaga kerja per batch. Pilih salah satu sesuai perilaku biayanya.</p>
++                <h3 className="font-bold">Jangan hitung biaya dua kali</h3>
++                <p className="mt-2 text-sm leading-6 text-black/60">Gaji pegawai jangan dimasukkan sebagai gaji bulanan sekaligus sebagai upah sekali produksi, kecuali memang ada dua pembayaran yang berbeda.</p>
+               </div>
+             </div>
+           </div>
+ 
+           <div className="admin-card flex items-center gap-4 p-5">
+             <span className="grid size-11 place-items-center rounded-xl bg-[#fff0e7] text-[#f15a16]"><Calculator className="size-5" /></span>
+-            <div><p className="text-xs text-black/40">Target margin</p><p className="mt-1 text-xl font-black">{settings.targetMarginPercent}%</p></div>
++            <div><p className="text-sm text-black/55">Target keuntungan</p><p className="mt-1 text-xl font-black">{settings.targetMarginPercent}%</p></div>
+           </div>
+         </aside>
+       </div>
+@@ -141,9 +141,9 @@ export default function HppSettingsPage() {
+ }
+ 
+ function Field({ label, note, children }: { label: string; note: string; children: React.ReactNode }) {
+-  return <label className="admin-label"><span>{label}</span>{children}<span className="text-xs font-normal leading-5 text-black/40">{note}</span></label>;
++  return <label className="admin-label"><span>{label}</span>{children}<span className="text-sm font-normal leading-6 text-black/55">{note}</span></label>;
+ }
+ 
+ function NumberInput({ value, onChange, min = 0, max, prefix, suffix, step = "1" }: { value: number; onChange: (value: number) => void; min?: number; max?: number; prefix?: string; suffix?: string; step?: string }) {
+-  return <div className="admin-field flex items-center px-3 py-0"><span className="text-xs font-bold text-black/35">{prefix}</span><input required type="number" inputMode="decimal" min={min} max={max} step={step} value={value} onFocus={(event) => event.currentTarget.select()} onChange={(event) => onChange(Number(event.target.value))} className="min-w-0 flex-1 bg-transparent px-2 py-3 font-normal outline-none" /><span className="text-xs font-bold text-black/35">{suffix}</span></div>;
++  return <div className="admin-field flex items-center px-3 py-0"><span className="text-xs font-bold text-black/45">{prefix}</span><input required type="number" inputMode="decimal" min={min} max={max} step={step} value={value} onFocus={(event) => event.currentTarget.select()} onChange={(event) => onChange(Number(event.target.value))} className="min-w-0 flex-1 bg-transparent px-2 py-3 font-normal outline-none" /><span className="text-xs font-bold text-black/45">{suffix}</span></div>;
+ }
+diff --git a/src/app/admin/(protected)/produk/page.tsx b/src/app/admin/(protected)/produk/page.tsx
+index c3141ad..54148ea 100644
+--- a/src/app/admin/(protected)/produk/page.tsx
++++ b/src/app/admin/(protected)/produk/page.tsx
+@@ -24,7 +24,7 @@ export default function ProductsAdminPage() {
+   }
+ 
+   useEffect(() => {
+-    load().catch((cause) => setMessage(cause instanceof Error ? cause.message : "Produk gagal dimuat."));
++    load().catch((cause) => setMessage(cause instanceof Error ? cause.message : "Daftar produk belum berhasil dimuat. Coba muat ulang halaman."));
+   }, []);
+ 
+   const rows = useMemo(() => products.map((product) => {
+@@ -44,11 +44,9 @@ export default function ProductsAdminPage() {
+   }), [products, ingredients, settings]);
+ 
+   async function remove(product: Product) {
+-    if (!window.confirm(`Hapus produk ${product.name} beserta data katalog publiknya?`)) return;
++    if (!window.confirm(`Yakin ingin menghapus ${product.name}? Produk juga akan hilang dari katalog pengunjung.`)) return;
+     setMessage("");
+     try {
+-      // Data Firestore dihapus lebih dahulu. Gambar hanya dibersihkan setelah commit
+-      // berhasil agar produk tidak tertinggal dengan URL gambar yang sudah rusak.
+       await deleteProduct(product.id);
+       if (product.imagePublicId) {
+         await fetch("/api/cloudinary/delete", {
+@@ -60,7 +58,7 @@ export default function ProductsAdminPage() {
+       await load();
+       setMessage("Produk berhasil dihapus.");
+     } catch (cause) {
+-      setMessage(cause instanceof Error ? cause.message : "Produk gagal dihapus.");
++      setMessage(cause instanceof Error ? cause.message : "Produk belum berhasil dihapus. Coba lagi.");
+     }
+   }
+ 
+@@ -68,45 +66,45 @@ export default function ProductsAdminPage() {
+     <section>
+       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+         <div>
+-          <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Master data / Produk</p>
+-          <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em]">Produk dan resep</h1>
+-          <p className="mt-2 max-w-3xl text-sm leading-6 text-black/50">Data resep dan HPP tetap privat. Saat disimpan, sistem hanya menyalin informasi aman ke katalog publik.</p>
++          <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Produk & resep</p>
++          <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em]">Daftar produk</h1>
++          <p className="mt-2 max-w-3xl text-sm leading-6 text-black/65">Pengunjung hanya melihat nama, gambar, pilihan ukuran, dan harga. Resep serta modal hanya dapat dilihat di halaman pengelola.</p>
+         </div>
+-        <Link href="/admin/produk/tambah" className="admin-button-primary"><Plus className="size-4" /> Tambah produk</Link>
++        <Link href="/admin/produk/tambah" className="admin-button-primary"><Plus className="size-4" /> Tambah produk baru</Link>
+       </div>
+ 
+-      {message && <p className="mt-5 rounded-xl border border-[#f3c7a9] bg-[#fff4eb] p-4 text-sm font-bold text-[#9a3b0d]">{message}</p>}
++      {message && <p className="mt-5 rounded-xl border border-[#f3c7a9] bg-[#fff4eb] p-4 text-sm font-bold leading-6 text-[#9a3b0d]">{message}</p>}
+ 
+       <div className="mt-7 grid gap-4 sm:grid-cols-3">
+-        <div className="admin-card p-5"><p className="text-xs font-bold text-black/40">Total produk</p><p className="mt-2 text-2xl font-black">{products.length}</p></div>
+-        <div className="admin-card p-5"><p className="text-xs font-bold text-black/40">Produk publik</p><p className="mt-2 text-2xl font-black">{products.filter((item) => item.active).length}</p></div>
+-        <div className="admin-card p-5"><p className="text-xs font-bold text-black/40">Total varian</p><p className="mt-2 text-2xl font-black">{products.reduce((sum, item) => sum + item.variants.length, 0)}</p></div>
++        <div className="admin-card p-5"><p className="text-sm font-bold text-black/55">Semua produk</p><p className="mt-2 text-2xl font-black">{products.length}</p></div>
++        <div className="admin-card p-5"><p className="text-sm font-bold text-black/55">Tampil di katalog</p><p className="mt-2 text-2xl font-black">{products.filter((item) => item.active).length}</p></div>
++        <div className="admin-card p-5"><p className="text-sm font-bold text-black/55">Jumlah pilihan ukuran</p><p className="mt-2 text-2xl font-black">{products.reduce((sum, item) => sum + item.variants.length, 0)}</p></div>
+       </div>
+ 
+       <div className="admin-card mt-5 overflow-hidden">
+         <div className="border-b border-black/10 p-5 sm:px-6">
+-          <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Produk tersimpan</p>
+-          <h2 className="mt-1 font-display text-2xl font-bold">Daftar produk</h2>
++          <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Data tersimpan</p>
++          <h2 className="mt-1 font-display text-2xl font-bold">Produk yang sudah dibuat</h2>
+         </div>
+         <div className="overflow-x-auto">
+           <table className="w-full min-w-[1000px] text-left text-sm">
+-            <thead className="bg-[#fbf8f3] text-[11px] uppercase tracking-[.08em] text-black/40">
+-              <tr><th className="px-6 py-3.5">Produk</th><th className="px-6 py-3.5">Kategori</th><th className="px-6 py-3.5">Varian</th><th className="px-6 py-3.5">Harga mulai</th><th className="px-6 py-3.5">HPP acuan</th><th className="px-6 py-3.5">Margin acuan</th><th className="px-6 py-3.5">Status</th><th className="px-6 py-3.5" /></tr>
++            <thead className="bg-[#fbf8f3] text-[11px] uppercase tracking-[.08em] text-black/50">
++              <tr><th className="px-6 py-3.5">Produk</th><th className="px-6 py-3.5">Kategori</th><th className="px-6 py-3.5">Pilihan</th><th className="px-6 py-3.5">Harga mulai</th><th className="px-6 py-3.5">Modal per gelas</th><th className="px-6 py-3.5">Keuntungan</th><th className="px-6 py-3.5">Tampilan katalog</th><th className="px-6 py-3.5" /></tr>
+             </thead>
+             <tbody>
+               {rows.map(({ product, displayVariant, minPrice, hpp }) => (
+                 <tr key={product.id} className="border-t border-black/10 hover:bg-[#fffaf5]">
+-                  <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="relative size-12 overflow-hidden rounded-xl bg-black/5">{product.imageUrl && <Image src={product.imageUrl} alt="" fill className="object-cover" />}</div><div><p className="font-bold">{product.name}</p><p className="mt-0.5 text-xs text-black/40">/{product.slug}</p></div></div></td>
++                  <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="relative size-12 overflow-hidden rounded-xl bg-black/5">{product.imageUrl && <Image src={product.imageUrl} alt="" fill className="object-cover" />}</div><div><p className="font-bold">{product.name}</p><p className="mt-0.5 text-xs text-black/50">Alamat halaman: /menu/{product.slug}</p></div></div></td>
+                   <td className="px-6 py-4">{product.category}</td>
+                   <td className="px-6 py-4">{product.variants.length}</td>
+                   <td className="px-6 py-4 font-black">{displayVariant ? formatRupiah(minPrice) : "-"}</td>
+                   <td className="px-6 py-4">{hpp ? formatRupiah(hpp.hppPerServing) : "-"}</td>
+                   <td className="px-6 py-4 font-black">{hpp ? `${hpp.currentMarginPercent.toFixed(1)}%` : "-"}</td>
+-                  <td className="px-6 py-4"><span className={`rounded-lg px-2.5 py-1 text-xs font-black ${product.active ? "bg-emerald-50 text-emerald-700" : "bg-black/5 text-black/45"}`}>{product.active ? "Publik" : "Draft"}</span></td>
+-                  <td className="px-6 py-4"><div className="flex justify-end gap-1"><Link href={`/admin/produk/${product.id}/edit`} className="rounded-lg p-2 hover:bg-black/5" aria-label={`Edit ${product.name}`}><Pencil className="size-4" /></Link><button onClick={() => remove(product)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Hapus ${product.name}`}><Trash2 className="size-4" /></button></div></td>
++                  <td className="px-6 py-4"><span className={`rounded-lg px-2.5 py-1 text-xs font-black ${product.active ? "bg-emerald-50 text-emerald-700" : "bg-black/5 text-black/55"}`}>{product.active ? "Ditampilkan" : "Disembunyikan"}</span></td>
++                  <td className="px-6 py-4"><div className="flex justify-end gap-1"><Link href={`/admin/produk/${product.id}/edit`} className="rounded-lg p-2 hover:bg-black/5" aria-label={`Ubah ${product.name}`}><Pencil className="size-4" /></Link><button onClick={() => remove(product)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Hapus ${product.name}`}><Trash2 className="size-4" /></button></div></td>
+                 </tr>
+               ))}
+-              {!rows.length && <tr><td colSpan={8} className="px-6 py-12 text-center text-black/40">Belum ada produk.</td></tr>}
++              {!rows.length && <tr><td colSpan={8} className="px-6 py-12 text-center text-black/50">Belum ada produk. Klik “Tambah produk baru” untuk membuat produk pertama.</td></tr>}
+             </tbody>
+           </table>
+         </div>
+diff --git a/src/app/admin/login/page.tsx b/src/app/admin/login/page.tsx
+index 0278bbc..f77465f 100644
+--- a/src/app/admin/login/page.tsx
++++ b/src/app/admin/login/page.tsx
+@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
+     setError("");
+ 
+     if (!auth) {
+-      setError("Firebase client belum dikonfigurasi di .env.local.");
++      setError("Sistem masuk belum siap. Hubungi pengelola website.");
+       return;
+     }
+ 
+@@ -35,12 +35,12 @@ export default function AdminLoginPage() {
+         body: JSON.stringify({ idToken })
+       });
+       const result = await response.json() as { message?: string };
+-      if (!response.ok) throw new Error(result.message || "Login gagal.");
++      if (!response.ok) throw new Error(result.message || "Tidak dapat masuk ke halaman pengelola.");
+ 
+       router.replace("/admin");
+       router.refresh();
+-    } catch (cause) {
+-      setError(cause instanceof Error ? cause.message : "Email atau password tidak valid.");
++    } catch {
++      setError("Email atau kata sandi salah, atau akun ini belum diberi akses pengelola.");
+     } finally {
+       setLoading(false);
+     }
+@@ -52,15 +52,19 @@ export default function AdminLoginPage() {
+         <span className="grid size-12 place-items-center rounded-xl bg-[#f15a16] text-white">
+           <LockKeyhole className="size-5" />
+         </span>
+-        <p className="mt-6 text-sm font-black uppercase tracking-[.2em] text-[#f15a16]">Private admin</p>
+-        <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.035em] text-[#17130f]">Masuk ke dashboard</h1>
+-        <p className="mt-3 text-sm leading-6 text-black/50">Hanya akun Firebase yang memiliki custom claim <code>admin: true</code>.</p>
+-        {error && <p className="mt-5 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
++        <p className="mt-6 text-sm font-black uppercase tracking-[.2em] text-[#f15a16]">Khusus pengelola</p>
++        <h1 className="mt-2 font-display text-4xl font-bold tracking-[-.035em] text-[#17130f]">Masuk ke halaman pengelola</h1>
++        <p className="mt-3 text-sm leading-6 text-black/60">Masukkan email dan kata sandi yang sudah diberikan untuk mengelola produk, resep, dan harga.</p>
++        {error && <p className="mt-5 rounded-xl bg-red-50 p-3 text-sm font-semibold leading-6 text-red-700">{error}</p>}
+         <div className="mt-7 grid gap-4">
+-          <input required name="email" type="email" autoComplete="email" placeholder="Email admin" className="admin-field" />
+-          <input required name="password" type="password" autoComplete="current-password" placeholder="Password" className="admin-field" />
+-          <button disabled={loading} className="admin-button-primary w-full">
+-            {loading ? "Memverifikasi..." : "Masuk"}
++          <label className="grid gap-2 text-sm font-bold">Email
++            <input required name="email" type="email" autoComplete="email" placeholder="contoh@email.com" className="admin-field font-normal" />
++          </label>
++          <label className="grid gap-2 text-sm font-bold">Kata sandi
++            <input required name="password" type="password" autoComplete="current-password" placeholder="Masukkan kata sandi" className="admin-field font-normal" />
++          </label>
++          <button disabled={loading} className="admin-button-primary mt-1 w-full">
++            {loading ? "Sedang memeriksa..." : "Masuk"}
+           </button>
+         </div>
+       </form>
+diff --git a/src/app/page.tsx b/src/app/page.tsx
+index 953ba75..112146c 100644
+--- a/src/app/page.tsx
++++ b/src/app/page.tsx
+@@ -56,7 +56,7 @@ export default function HomePage() {
+             {[
+               [Citrus, "Buah pilihan", "Bahan dipilih untuk menjaga rasa yang konsisten di setiap pesanan."],
+               [Droplets, "Dibuat segar", "Minuman diproses setelah pesanan diterima, bukan disimpan terlalu lama."],
+-              [Sparkles, "Varian fleksibel", "Ukuran dan varian harga ditampilkan jelas sebelum kamu memesan."]
++              [Sparkles, "Pilihan ukuran", "Ukuran dan harga ditampilkan dengan jelas sebelum kamu memesan."]
+             ].map(([Icon, title, text]) => {
+               const C = Icon as typeof Citrus;
+               return <article key={String(title)} className="rounded-2xl border border-black/10 bg-[#fffdf9] p-6"><span className="grid size-10 place-items-center rounded-lg bg-[#fff0e7] text-[#f15a16]"><C className="size-[18px]" /></span><h3 className="mt-5 font-display text-xl font-bold">{String(title)}</h3><p className="mt-2 text-sm leading-6 text-black/50">{String(text)}</p></article>;
+diff --git a/src/components/admin-guide-panel.tsx b/src/components/admin-guide-panel.tsx
+index 3a9321c..2ca9b01 100644
+--- a/src/components/admin-guide-panel.tsx
++++ b/src/components/admin-guide-panel.tsx
+@@ -16,7 +16,7 @@ type AdminGuidePanelProps = {
+ };
+ 
+ export function AdminGuidePanel({
+-  eyebrow = "Panduan pengisian",
++  eyebrow = "Cara mengisi",
+   title,
+   description,
+   steps,
+@@ -35,12 +35,12 @@ export function AdminGuidePanel({
+             <Lightbulb className="size-5" />
+           </span>
+           <div>
+-            <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#d84909]">{eyebrow}</p>
++            <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#b83b05]">{eyebrow}</p>
+             <h2 className="mt-1 font-display text-xl font-bold text-[#17130f] sm:text-2xl">{title}</h2>
+-            <p className="mt-2 max-w-4xl text-xs leading-5 text-black/50 sm:text-sm sm:leading-6">{description}</p>
++            <p className="mt-2 max-w-4xl text-sm leading-6 text-black/65">{description}</p>
+           </div>
+         </div>
+-        <span className="mt-1 grid size-9 shrink-0 place-items-center rounded-lg border border-black/10 bg-white text-black/45 transition-transform group-open:rotate-180">
++        <span className="mt-1 grid size-9 shrink-0 place-items-center rounded-lg border border-black/10 bg-white text-black/55 transition-transform group-open:rotate-180" aria-hidden="true">
+           <ChevronDown className="size-4" />
+         </span>
+       </summary>
+@@ -48,11 +48,11 @@ export function AdminGuidePanel({
+       <div className="border-t border-[#efc7aa] px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
+         <ol className="grid gap-3 lg:grid-cols-2">
+           {steps.map((step, index) => (
+-            <li key={`${step.title}-${index}`} className="flex items-start gap-3 rounded-xl border border-black/[.07] bg-white/80 p-4">
++            <li key={`${step.title}-${index}`} className="flex items-start gap-3 rounded-xl border border-black/[.07] bg-white/90 p-4">
+               <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[#17130f] text-xs font-black text-white">{index + 1}</span>
+               <div>
+                 <p className="text-sm font-black text-[#17130f]">{step.title}</p>
+-                <p className="mt-1 text-xs leading-5 text-black/50">{step.description}</p>
++                <p className="mt-1 text-sm leading-6 text-black/60">{step.description}</p>
+               </div>
+             </li>
+           ))}
+@@ -61,7 +61,7 @@ export function AdminGuidePanel({
+         {note && (
+           <div className="mt-4 flex items-start gap-3 rounded-xl bg-[#17130f] p-4 text-white">
+             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[#ff9d6e]" />
+-            <p className="text-xs leading-5 text-white/70"><strong className="text-white">Catatan penting:</strong> {note}</p>
++            <p className="text-sm leading-6 text-white/80"><strong className="text-white">Penting:</strong> {note}</p>
+           </div>
+         )}
+       </div>
+@@ -71,7 +71,7 @@ export function AdminGuidePanel({
+ 
+ export function GuideCheck({ children }: { children: React.ReactNode }) {
+   return (
+-    <li className="flex items-start gap-2 text-sm leading-6 text-black/60">
++    <li className="flex items-start gap-2 text-sm leading-6 text-black/70">
+       <CheckCircle2 className="mt-1 size-4 shrink-0 text-[#f15a16]" />
+       <span>{children}</span>
+     </li>
+diff --git a/src/components/admin-sidebar.tsx b/src/components/admin-sidebar.tsx
+index 9b91d7c..39981a3 100644
+--- a/src/components/admin-sidebar.tsx
++++ b/src/components/admin-sidebar.tsx
+@@ -16,11 +16,11 @@ import { signOut } from "firebase/auth";
+ import { auth } from "@/lib/firebase/client";
+ 
+ const links = [
+-  { href: "/admin", label: "Ringkasan", icon: LayoutDashboard },
+-  { href: "/admin/panduan", label: "Panduan sistem", icon: BookOpenCheck },
++  { href: "/admin", label: "Ringkasan usaha", icon: LayoutDashboard },
++  { href: "/admin/panduan", label: "Cara menggunakan", icon: BookOpenCheck },
+   { href: "/admin/produk", label: "Produk & resep", icon: PackageOpen },
+-  { href: "/admin/bahan", label: "Bahan baku", icon: Boxes },
+-  { href: "/admin/pengaturan-hpp", label: "Pengaturan HPP", icon: Settings2 }
++  { href: "/admin/bahan", label: "Bahan & kemasan", icon: Boxes },
++  { href: "/admin/pengaturan-hpp", label: "Biaya & harga jual", icon: Settings2 }
+ ];
+ 
+ export function AdminSidebar({ email }: { email: string }) {
+@@ -43,12 +43,12 @@ export function AdminSidebar({ email }: { email: string }) {
+           </span>
+           <span>
+             <strong className="block font-display text-lg leading-none">Nexty Juice</strong>
+-            <small className="mt-1 block text-[10px] font-bold uppercase tracking-[.18em] text-black/40">Admin workspace</small>
++            <small className="mt-1 block text-[10px] font-bold uppercase tracking-[.18em] text-black/50">Halaman pengelola</small>
+           </span>
+         </Link>
+         <Link href="/" target="_blank" className="admin-button-secondary px-3 py-2 lg:mt-6 lg:w-full">
+           <ExternalLink className="size-4" />
+-          <span className="hidden sm:inline">Buka katalog</span>
++          <span className="hidden sm:inline">Lihat katalog</span>
+         </Link>
+       </div>
+ 
+@@ -62,7 +62,7 @@ export function AdminSidebar({ email }: { email: string }) {
+               className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold ${
+                 active
+                   ? "bg-[#f15a16] text-white shadow-[0_8px_22px_rgba(241,90,22,.22)]"
+-                  : "text-black/50 hover:bg-black/[.04] hover:text-black"
++                  : "text-black/60 hover:bg-black/[.04] hover:text-black"
+               }`}
+             >
+               <Icon className="size-[18px]" />
+@@ -74,10 +74,10 @@ export function AdminSidebar({ email }: { email: string }) {
+ 
+       <div className="mt-auto hidden border-t border-black/10 p-4 lg:block">
+         <div className="rounded-xl bg-[#f7f2ea] p-3">
+-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-black/35">Akun aktif</p>
+-          <p className="mt-1 truncate text-xs font-semibold text-black/65">{email}</p>
++          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-black/45">Sedang masuk sebagai</p>
++          <p className="mt-1 truncate text-xs font-semibold text-black/70">{email}</p>
+         </div>
+-        <button onClick={logout} className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-black/50 hover:bg-red-50 hover:text-red-600">
++        <button onClick={logout} className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-black/60 hover:bg-red-50 hover:text-red-600">
+           <LogOut className="size-[18px]" /> Keluar
+         </button>
+       </div>
+diff --git a/src/components/catalog-grid.tsx b/src/components/catalog-grid.tsx
+index 801705c..2e91388 100644
+--- a/src/components/catalog-grid.tsx
++++ b/src/components/catalog-grid.tsx
+@@ -24,6 +24,6 @@ export function CatalogGrid({ featuredOnly = false, limit }: { featuredOnly?: bo
+     .slice(0, limit ?? products.length);
+ 
+   if (loading) return <div className="rounded-2xl border border-black/10 bg-[#f7f2ea] p-10 text-center text-black/40">Memuat katalog...</div>;
+-  if (!filtered.length) return <div className="rounded-2xl border border-black/10 bg-[#f7f2ea] p-10 text-center text-black/40">Belum ada produk aktif.</div>;
++  if (!filtered.length) return <div className="rounded-2xl border border-black/10 bg-[#f7f2ea] p-10 text-center text-black/40">Belum ada produk yang ditampilkan.</div>;
+   return <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{filtered.map((product) => <ProductCard key={product.id} product={product} />)}</div>;
+ }
+diff --git a/src/components/cloudinary-upload.tsx b/src/components/cloudinary-upload.tsx
+index 2986edc..3a89741 100644
+--- a/src/components/cloudinary-upload.tsx
++++ b/src/components/cloudinary-upload.tsx
+@@ -19,10 +19,10 @@ export function CloudinaryUpload({ onUploaded }: { onUploaded: (result: { url: s
+       formData.set("file", file);
+       const response = await fetch("/api/cloudinary/upload", { method: "POST", body: formData });
+       const result = await response.json() as { url?: string; publicId?: string; message?: string };
+-      if (!response.ok || !result.url) throw new Error(result.message || "Upload gagal.");
++      if (!response.ok || !result.url) throw new Error(result.message || "Gambar belum berhasil diunggah. Coba pilih gambar lain.");
+       onUploaded({ url: result.url, publicId: result.publicId ?? "" });
+     } catch (cause) {
+-      setError(cause instanceof Error ? cause.message : "Upload gagal.");
++      setError(cause instanceof Error ? cause.message : "Gambar belum berhasil diunggah. Coba lagi.");
+     } finally {
+       setUploading(false);
+     }
+@@ -32,10 +32,11 @@ export function CloudinaryUpload({ onUploaded }: { onUploaded: (result: { url: s
+     <div>
+       <label className={`inline-flex cursor-pointer items-center gap-2 admin-button-secondary ${uploading ? "pointer-events-none opacity-60" : ""}`}>
+         {uploading ? <LoaderCircle className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+-        {uploading ? "Mengunggah..." : "Upload gambar"}
++        {uploading ? "Sedang mengunggah..." : "Pilih gambar dari perangkat"}
+         <input type="file" accept="image/*" onChange={upload} className="sr-only" />
+       </label>
+-      {error && <p className="mt-2 text-xs font-semibold text-red-600">{error}</p>}
++      <p className="mt-2 text-xs leading-5 text-black/50">Gunakan foto produk yang jelas. Ukuran file maksimal 5 MB.</p>
++      {error && <p className="mt-2 text-sm font-semibold text-red-600">{error}</p>}
+     </div>
+   );
+ }
+diff --git a/src/components/product-detail-client.tsx b/src/components/product-detail-client.tsx
+index 42dad67..daf4d80 100644
+--- a/src/components/product-detail-client.tsx
++++ b/src/components/product-detail-client.tsx
+@@ -44,12 +44,12 @@ export function ProductDetailClient({ slug }: { slug: string }) {
+           <span className="w-fit rounded-lg bg-[#fff0e7] px-3 py-2 text-[11px] font-black uppercase tracking-[.1em] text-[#d84909]">{product.category}</span>
+           <h1 className="mt-5 font-display text-5xl font-bold tracking-[-.045em]">{product.name}</h1>
+           <p className="mt-5 text-base leading-7 text-black/50">{product.description}</p>
+-          <div className="mt-7 space-y-2 text-sm text-black/50"><p className="flex items-center gap-2"><Check className="size-4 text-[#f15a16]" /> Dibuat setelah pesanan diterima</p><p className="flex items-center gap-2"><Check className="size-4 text-[#f15a16]" /> Harga sesuai varian yang dipilih</p></div>
++          <div className="mt-7 space-y-2 text-sm text-black/50"><p className="flex items-center gap-2"><Check className="size-4 text-[#f15a16]" /> Dibuat setelah pesanan diterima</p><p className="flex items-center gap-2"><Check className="size-4 text-[#f15a16]" /> Harga sesuai pilihan yang dipilih</p></div>
+ 
+           <div className="mt-8 grid gap-3">
+             {variants.map((variant) => (
+               <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`flex items-center justify-between rounded-xl border p-4 text-left ${selectedVariant?.id === variant.id ? "border-[#f15a16] bg-[#fff4eb]" : "border-black/10 bg-white hover:border-black/20"}`}>
+-                <div><p className="text-xs text-black/40">Varian</p><p className="mt-1 font-bold">{variant.name}</p></div>
++                <div><p className="text-xs text-black/40">Pilihan</p><p className="mt-1 font-bold">{variant.name}</p></div>
+                 <p className="text-xl font-black text-[#d84909]">{formatRupiah(variant.sellingPrice)}</p>
+               </button>
+             ))}
+@@ -58,7 +58,7 @@ export function ProductDetailClient({ slug }: { slug: string }) {
+           {selectedVariant ? (
+             <a href={`https://wa.me/${whatsappNumber}?text=${message}`} target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-[#17130f] px-6 py-4 font-black text-white hover:bg-[#f15a16]"><MessageCircle className="size-5" /> Pesan via WhatsApp</a>
+           ) : (
+-            <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-700">Belum ada varian aktif untuk produk ini.</p>
++            <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-700">Belum ada pilihan yang tersedia untuk produk ini.</p>
+           )}
+         </div>
+       </section>
+diff --git a/src/components/product-form.tsx b/src/components/product-form.tsx
+index ee0c220..a4aa5cd 100644
+--- a/src/components/product-form.tsx
++++ b/src/components/product-form.tsx
+@@ -79,7 +79,7 @@ export function ProductForm({ productId }: { productId?: string }) {
+         });
+         setOriginalImagePublicId(existing.imagePublicId ?? "");
+       }
+-    }).catch((cause) => setMessage(cause instanceof Error ? cause.message : "Form produk gagal dimuat."))
++    }).catch((cause) => setMessage(cause instanceof Error ? cause.message : "Data produk belum berhasil dimuat. Coba muat ulang halaman."))
+       .finally(() => setLoading(false));
+   }, [productId]);
+ 
+@@ -110,7 +110,7 @@ export function ProductForm({ productId }: { productId?: string }) {
+   function addRecipeLine(variantId: string) {
+     const firstIngredient = ingredients.find((item) => item.active) ?? ingredients[0];
+     if (!firstIngredient) {
+-      setMessage("Tambahkan bahan baku terlebih dahulu sebelum membuat resep.");
++      setMessage("Tambahkan bahan atau kemasan terlebih dahulu sebelum membuat resep.");
+       return;
+     }
+     const line: RecipeItem = { id: randomId("recipe"), ingredientId: firstIngredient.id, quantity: 0 };
+@@ -146,7 +146,7 @@ export function ProductForm({ productId }: { productId?: string }) {
+     setSaving(true);
+     try {
+       if (await isProductSlugTaken(cleanProduct.slug, productId)) {
+-        throw new Error("Slug produk sudah digunakan. Gunakan slug lain.");
++        throw new Error("Alamat halaman produk ini sudah dipakai. Buka pengaturan teknis lalu gunakan alamat lain.");
+       }
+       await saveProduct(cleanProduct, productId);
+       if (originalImagePublicId && originalImagePublicId !== cleanProduct.imagePublicId) {
+@@ -159,62 +159,73 @@ export function ProductForm({ productId }: { productId?: string }) {
+       router.push("/admin/produk");
+       router.refresh();
+     } catch (cause) {
+-      setMessage(cause instanceof Error ? cause.message : "Produk gagal disimpan.");
++      setMessage(cause instanceof Error ? cause.message : "Produk belum berhasil disimpan. Periksa kembali data yang diisi lalu coba lagi.");
+     } finally {
+       setSaving(false);
+     }
+   }
+ 
+-  if (loading) return <p className="admin-card p-8 text-black/50">Memuat form produk...</p>;
++  if (loading) return <p className="admin-card p-8 text-black/60">Sedang memuat data produk...</p>;
+ 
+   return (
+     <form onSubmit={submit}>
+-      <button type="button" onClick={() => router.push("/admin/produk")} className="admin-button-secondary"><ArrowLeft className="size-4" /> Kembali ke produk</button>
++      <button type="button" onClick={() => router.push("/admin/produk")} className="admin-button-secondary"><ArrowLeft className="size-4" /> Kembali ke daftar produk</button>
+       <div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+-        <div><p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Product editor</p><h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em] text-[#17130f]">{productId ? "Edit produk" : "Tambah produk"}</h1></div>
+-        <button disabled={saving} className="inline-flex items-center justify-center gap-2 admin-button-primary"><Save className="size-4" /> {saving ? "Menyimpan..." : "Simpan produk"}</button>
++        <div><p className="text-[11px] font-black uppercase tracking-[.2em] text-[#f15a16]">Produk & resep</p><h1 className="mt-2 font-display text-4xl font-bold tracking-[-.03em] text-[#17130f]">{productId ? "Ubah produk" : "Tambah produk baru"}</h1></div>
++        <button disabled={saving} className="inline-flex items-center justify-center gap-2 admin-button-primary"><Save className="size-4" /> {saving ? "Sedang menyimpan..." : "Simpan produk"}</button>
+       </div>
+-      {message && <p className="mt-5 rounded-xl border border-[#f3c7a9] bg-[#fff4eb] p-4 text-sm font-bold text-[#9a3b0d]">{message}</p>}
++      {message && <p className="mt-5 rounded-xl border border-[#f3c7a9] bg-[#fff4eb] p-4 text-sm font-bold leading-6 text-[#9a3b0d]">{message}</p>}
+ 
+       <AdminGuidePanel
+         className="mt-6"
+-        defaultOpen={!productId}
+-        eyebrow="Panduan langkah 3"
+-        title="Susun resep per batch, lalu cek HPP per porsi"
+-        description="Satu varian dapat memiliki resep dan biaya produksi yang berbeda. Sistem membagi seluruh biaya batch dengan jumlah porsi layak jual."
++        defaultOpen
++        eyebrow="Langkah 3 dari 4"
++        title="Isi produk, resep sekali produksi, lalu periksa modal satu gelas"
++        description="Setiap ukuran produk dapat mempunyai resep, jumlah hasil, dan harga jual yang berbeda. Sistem menghitung modal secara otomatis dari data yang kamu masukkan."
+         steps={[
+-          { title: "Isi informasi katalog", description: "Nama, kategori, deskripsi, gambar, dan harga jual adalah data yang akan tampil ke pengunjung." },
+-          { title: "Tentukan hasil batch", description: "Isi jumlah gelas yang benar-benar dapat dijual dari satu kali proses produksi, bukan jumlah teoritis." },
+-          { title: "Tambahkan resep bersih", description: "Masukkan bahan dan kemasan sesuai satuan master. Contoh: mangga 200 gram dan cup 1 pcs untuk satu batch." },
+-          { title: "Tambahkan biaya proses", description: "Isi tenaga kerja, utilitas, dan biaya variabel lain yang benar-benar berubah mengikuti jumlah batch." },
+-          { title: "Audit sebelum simpan", description: "Bandingkan HPP penuh, saran harga, margin saat ini, dan peringatan audit pada bagian bawah varian." }
++          { title: "Isi informasi yang dilihat pengunjung", description: "Masukkan nama, kategori, deskripsi, gambar, dan tentukan apakah produk ditampilkan di katalog." },
++          { title: "Buat pilihan ukuran", description: "Contoh: Regular dan Large. Isi harga jual serta jumlah gelas yang dihasilkan dari sekali membuat resep." },
++          { title: "Masukkan bahan resep", description: "Pilih bahan dan kemasan, lalu isi jumlah yang dipakai dalam sekali produksi." },
++          { title: "Masukkan biaya proses", description: "Isi upah, listrik, air, gas, atau biaya lain yang khusus keluar setiap kali produksi." },
++          { title: "Periksa hasil", description: "Lihat modal satu gelas, saran harga jual, persentase keuntungan, dan hal yang perlu diperbaiki." }
+         ]}
+-        note="Jika jumlah bahan resep sudah merupakan pemakaian gross/aktual, isi process loss 0%. Process loss hanya digunakan saat resep dicatat sebagai kebutuhan bersih."
++        note="Kolom tambahan bahan karena sisa atau tumpah hanya diisi jika jumlah resep belum memasukkan kehilangan tersebut. Jika jumlah resep sudah sesuai pemakaian nyata, isi 0%."
+       />
+ 
+       <section className="mt-8 grid gap-6 xl:grid-cols-[1fr_360px]">
+         <div className="admin-card p-5 sm:p-6">
+-          <h2 className="font-display text-2xl font-bold text-[#17130f]">Informasi katalog</h2>
++          <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Bagian A</p>
++          <h2 className="mt-1 font-display text-2xl font-bold text-[#17130f]">Informasi yang tampil di katalog</h2>
+           <div className="mt-6 grid gap-4 sm:grid-cols-2">
+             <TextField label="Nama produk" value={product.name} onChange={(value) => { updateBase("name", value); if (!productId) updateBase("slug", slugify(value)); }} />
+-            <TextField label="Slug URL" value={product.slug} onChange={(value) => updateBase("slug", slugify(value))} />
+             <TextField label="Kategori" value={product.category} onChange={(value) => updateBase("category", value)} />
+-            <NumberField label="Urutan tampil" value={product.sortOrder} onChange={(value) => updateBase("sortOrder", value)} />
++            <NumberField label="Urutan di katalog" value={product.sortOrder} note="Angka kecil tampil lebih dahulu. Contoh: 1 sebelum 2." onChange={(value) => updateBase("sortOrder", value)} />
+           </div>
+-          <label className="mt-4 grid gap-2 text-sm font-bold">Deskripsi<textarea required rows={4} value={product.description} onChange={(event) => updateBase("description", event.target.value)} className="admin-field font-normal" /></label>
+-          <div className="mt-4 flex flex-wrap gap-5">
+-            <Checkbox label="Produk aktif" checked={product.active} onChange={(value) => updateBase("active", value)} />
+-            <Checkbox label="Produk unggulan" checked={product.featured} onChange={(value) => updateBase("featured", value)} />
++          <label className="mt-4 grid gap-2 text-sm font-bold">Deskripsi untuk pengunjung<textarea required rows={4} value={product.description} onChange={(event) => updateBase("description", event.target.value)} placeholder="Contoh: Jus mangga segar dengan rasa manis alami." className="admin-field font-normal" /></label>
++          <div className="mt-4 grid gap-3 rounded-xl border border-black/10 bg-[#fbf8f3] p-4 sm:grid-cols-2">
++            <Checkbox label="Tampilkan produk di katalog" checked={product.active} onChange={(value) => updateBase("active", value)} />
++            <Checkbox label="Tampilkan di bagian produk unggulan" checked={product.featured} onChange={(value) => updateBase("featured", value)} />
+           </div>
++          <details className="mt-4 rounded-xl border border-black/10 bg-white p-4">
++            <summary className="cursor-pointer text-sm font-bold">Pengaturan teknis — biasanya tidak perlu diubah</summary>
++            <div className="mt-4">
++              <TextField label="Alamat halaman produk" value={product.slug} onChange={(value) => updateBase("slug", slugify(value))} />
++              <p className="mt-2 text-sm leading-6 text-black/55">Sistem membuat alamat otomatis dari nama produk. Ubah hanya jika benar-benar diperlukan.</p>
++            </div>
++          </details>
+         </div>
+ 
+         <aside className="admin-card p-5 sm:p-6">
+-          <h2 className="font-display text-2xl font-bold text-[#17130f]">Gambar produk</h2>
++          <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Foto produk</p>
++          <h2 className="mt-1 font-display text-2xl font-bold text-[#17130f]">Gambar yang dilihat pengunjung</h2>
+           <div className="relative mt-5 aspect-square overflow-hidden rounded-2xl bg-black/5">
+-            {product.imageUrl ? <Image src={product.imageUrl} alt={product.name || "Preview produk"} fill className="object-cover" /> : <div className="grid h-full place-items-center text-sm text-black/35">Belum ada gambar</div>}
++            {product.imageUrl ? <Image src={product.imageUrl} alt={product.name || "Gambar produk"} fill className="object-cover" /> : <div className="grid h-full place-items-center text-sm text-black/45">Belum ada gambar</div>}
+           </div>
+           <div className="mt-4"><CloudinaryUpload onUploaded={({ url, publicId }) => setProduct((current) => ({ ...current, imageUrl: url, imagePublicId: publicId }))} /></div>
+-          <label className="mt-4 grid gap-2 text-xs font-bold text-black/45">Atau URL gambar<input value={product.imageUrl} onChange={(event) => setProduct((current) => ({ ...current, imageUrl: event.target.value, imagePublicId: "" }))} className="admin-field px-3 py-2 font-normal text-black" /></label>
++          <details className="mt-4 rounded-xl border border-black/10 p-3">
++            <summary className="cursor-pointer text-sm font-bold">Gunakan tautan gambar</summary>
++            <label className="mt-3 grid gap-2 text-sm font-bold">Tautan gambar<input value={product.imageUrl} onChange={(event) => setProduct((current) => ({ ...current, imageUrl: event.target.value, imagePublicId: "" }))} placeholder="https://..." className="admin-field px-3 py-2 font-normal text-black" /></label>
++          </details>
+         </aside>
+       </section>
+ 
+@@ -223,45 +234,49 @@ export function ProductForm({ productId }: { productId?: string }) {
+           const hpp = calculateVariantHpp(variant, ingredients, settings);
+           return (
+             <article key={variant.id} className="admin-card p-5 sm:p-6">
+-              <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-widest text-[#f15a16]">Varian {index + 1}</p><h2 className="mt-1 font-display text-2xl font-bold text-[#17130f]">{variant.name || "Tanpa nama"}</h2></div>{product.variants.length > 1 && <button type="button" onClick={() => removeVariant(variant.id)} className="inline-flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-600"><Trash2 className="size-4" /> Hapus varian</button>}</div>
++              <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-widest text-[#f15a16]">Pilihan produk {index + 1}</p><h2 className="mt-1 font-display text-2xl font-bold text-[#17130f]">{variant.name || "Belum diberi nama"}</h2></div>{product.variants.length > 1 && <button type="button" onClick={() => removeVariant(variant.id)} className="inline-flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-600"><Trash2 className="size-4" /> Hapus pilihan</button>}</div>
+ 
+               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+-                <TextField label="Nama varian" value={variant.name} onChange={(value) => updateVariant(variant.id, { name: value })} />
+-                <AutoSkuField label="SKU varian" value={variant.sku} />
+-                <NumberField label="Harga jual per porsi" value={variant.sellingPrice} prefix="Rp" onChange={(value) => updateVariant(variant.id, { sellingPrice: value })} />
+-                <NumberField label="Hasil batch" value={variant.batchYield} min={1} suffix="porsi" note="Jumlah porsi layak jual dari satu kali produksi." onChange={(value) => updateVariant(variant.id, { batchYield: value })} />
+-                <NumberField label="Process loss" value={variant.processLossPercent} max={99} step="0.01" suffix="%" note="Isi 0% bila resep sudah memakai jumlah gross/aktual." onChange={(value) => updateVariant(variant.id, { processLossPercent: value })} />
+-                <NumberField label="Tenaga kerja per batch" value={variant.laborCostPerBatch} prefix="Rp" note="Upah yang berubah mengikuti jumlah batch." onChange={(value) => updateVariant(variant.id, { laborCostPerBatch: value })} />
+-                <NumberField label="Utilitas per batch" value={variant.utilityCostPerBatch} prefix="Rp" note="Listrik, air, atau gas yang dipakai untuk satu batch." onChange={(value) => updateVariant(variant.id, { utilityCostPerBatch: value })} />
+-                <NumberField label="Biaya variabel lain" value={variant.otherVariableCostPerBatch} prefix="Rp" note="Biaya per batch di luar bahan, kemasan, tenaga kerja, dan utilitas." onChange={(value) => updateVariant(variant.id, { otherVariableCostPerBatch: value })} />
++                <TextField label="Nama pilihan / ukuran" value={variant.name} onChange={(value) => updateVariant(variant.id, { name: value })} />
++                <AutoSkuField label="Kode produk" value={variant.sku} />
++                <NumberField label="Harga jual per gelas" value={variant.sellingPrice} prefix="Rp" note="Harga yang akan dilihat pengunjung." onChange={(value) => updateVariant(variant.id, { sellingPrice: value })} />
++                <NumberField label="Jumlah gelas dari sekali produksi" value={variant.batchYield} min={1} suffix="gelas" note="Contoh: satu blender menghasilkan 4 gelas, maka isi 4." onChange={(value) => updateVariant(variant.id, { batchYield: value })} />
++                <NumberField label="Tambahan bahan karena sisa/tumpah" value={variant.processLossPercent} max={99} step="0.01" suffix="%" note="Isi 0 jika jumlah resep sudah sesuai pemakaian nyata." onChange={(value) => updateVariant(variant.id, { processLossPercent: value })} />
++                <NumberField label="Upah untuk sekali produksi" value={variant.laborCostPerBatch} prefix="Rp" note="Isi hanya upah yang bertambah setiap kali produk dibuat." onChange={(value) => updateVariant(variant.id, { laborCostPerBatch: value })} />
++                <NumberField label="Listrik, air, atau gas sekali produksi" value={variant.utilityCostPerBatch} prefix="Rp" note="Perkiraan biaya yang dipakai saat satu kali membuat resep." onChange={(value) => updateVariant(variant.id, { utilityCostPerBatch: value })} />
++                <NumberField label="Biaya lain untuk sekali produksi" value={variant.otherVariableCostPerBatch} prefix="Rp" note="Contoh: stiker khusus atau biaya lain yang belum masuk bahan dan kemasan." onChange={(value) => updateVariant(variant.id, { otherVariableCostPerBatch: value })} />
+               </div>
+-              <div className="mt-4"><Checkbox label="Varian aktif" checked={variant.active} onChange={(value) => updateVariant(variant.id, { active: value })} /></div>
++              <div className="mt-4 rounded-xl border border-black/10 bg-[#fbf8f3] p-4"><Checkbox label="Tampilkan pilihan ini di katalog" checked={variant.active} onChange={(value) => updateVariant(variant.id, { active: value })} /></div>
+ 
+               <div className="mt-7 overflow-hidden rounded-2xl border border-black/10">
+-                <div className="flex items-center justify-between border-b border-black/10 bg-black/[.02] px-5 py-4"><div><h3 className="font-black">Kebutuhan bersih per batch</h3><p className="mt-1 text-xs text-black/45">Masukkan kebutuhan bersih bahan. Jika kuantitas sudah gross/aktual, isi process loss 0%.</p></div><button type="button" onClick={() => addRecipeLine(variant.id)} className="inline-flex items-center gap-2 rounded-xl bg-[#fff0e7] px-4 py-2 text-sm font-black text-[#d84909]"><Plus className="size-4" /> Tambah bahan</button></div>
+-                <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-black/45"><tr><th className="px-5 py-3">Bahan</th><th className="px-5 py-3">Pemakaian</th><th className="px-5 py-3">Biaya/satuan</th><th className="px-5 py-3">Subtotal</th><th className="px-5 py-3" /></tr></thead><tbody>{variant.recipe.map((line) => { const ingredient = ingredientMap.get(line.ingredientId); const unitCost = ingredient ? calculateEffectiveUnitCost(ingredient) : 0; return <tr key={line.id} className="border-t border-black/5"><td className="px-5 py-3"><select value={line.ingredientId} onChange={(event) => updateRecipeLine(variant.id, line.id, { ingredientId: event.target.value })} className="w-full rounded-lg border border-black/10 px-3 py-2">{ingredients.map((item) => <option key={item.id} value={item.id}>{item.name}{item.active ? "" : " (nonaktif)"} · {item.costType === "packaging" ? "kemasan" : "bahan"}</option>)}</select></td><td className="px-5 py-3"><div className="flex items-center rounded-lg border border-black/10 px-3"><input type="number" inputMode="decimal" min="0.0001" step="any" value={line.quantity} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateRecipeLine(variant.id, line.id, { quantity: Number(event.target.value) })} className="min-w-0 flex-1 py-2 outline-none" /><span className="text-xs text-black/40">{ingredient?.unit}</span></div></td><td className="px-5 py-3">{formatRupiah(unitCost)}</td><td className="px-5 py-3 font-black">{formatRupiah(line.quantity * unitCost)}</td><td className="px-5 py-3 text-right"><button type="button" onClick={() => removeRecipeLine(variant.id, line.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50"><Trash2 className="size-4" /></button></td></tr>; })}{!variant.recipe.length && <tr><td colSpan={5} className="px-5 py-8 text-center text-black/40">Belum ada bahan pada resep.</td></tr>}</tbody></table></div>
++                <div className="flex flex-col justify-between gap-4 border-b border-black/10 bg-black/[.02] px-5 py-4 sm:flex-row sm:items-center"><div><h3 className="font-black">Bahan untuk sekali produksi</h3><p className="mt-1 text-sm leading-6 text-black/60">Masukkan jumlah bahan dan kemasan yang dipakai untuk menghasilkan jumlah gelas di atas.</p></div><button type="button" onClick={() => addRecipeLine(variant.id)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#fff0e7] px-4 py-2 text-sm font-black text-[#d84909]"><Plus className="size-4" /> Tambah bahan</button></div>
++                <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-black/55"><tr><th className="px-5 py-3">Bahan / kemasan</th><th className="px-5 py-3">Jumlah dipakai</th><th className="px-5 py-3">Biaya per satuan</th><th className="px-5 py-3">Total biaya</th><th className="px-5 py-3" /></tr></thead><tbody>{variant.recipe.map((line) => { const ingredient = ingredientMap.get(line.ingredientId); const unitCost = ingredient ? calculateEffectiveUnitCost(ingredient) : 0; return <tr key={line.id} className="border-t border-black/5"><td className="px-5 py-3"><select value={line.ingredientId} onChange={(event) => updateRecipeLine(variant.id, line.id, { ingredientId: event.target.value })} className="w-full rounded-lg border border-black/10 px-3 py-2">{ingredients.map((item) => <option key={item.id} value={item.id}>{item.name}{item.active ? "" : " (disembunyikan)"} · {item.costType === "packaging" ? "kemasan" : "bahan"}</option>)}</select></td><td className="px-5 py-3"><div className="flex items-center rounded-lg border border-black/10 px-3"><input type="number" inputMode="decimal" min="0.0001" step="any" value={line.quantity} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateRecipeLine(variant.id, line.id, { quantity: Number(event.target.value) })} className="min-w-0 flex-1 py-2 outline-none" /><span className="text-xs text-black/50">{ingredient?.unit}</span></div></td><td className="px-5 py-3">{formatRupiah(unitCost)}</td><td className="px-5 py-3 font-black">{formatRupiah(line.quantity * unitCost)}</td><td className="px-5 py-3 text-right"><button type="button" onClick={() => removeRecipeLine(variant.id, line.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label="Hapus bahan dari resep"><Trash2 className="size-4" /></button></td></tr>; })}{!variant.recipe.length && <tr><td colSpan={5} className="px-5 py-8 text-center text-black/50">Belum ada bahan. Klik “Tambah bahan” untuk mulai membuat resep.</td></tr>}</tbody></table></div>
+               </div>
+ 
+-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+-                <Metric label="Bahan produksi" value={formatRupiah(hpp.rawProductionMaterialCostPerBatch)} />
++              <div className="mt-6">
++                <p className="text-xs font-black uppercase tracking-[.14em] text-[#f15a16]">Hasil perhitungan otomatis</p>
++                <h3 className="mt-1 font-display text-2xl font-bold">Modal dan saran harga</h3>
++              </div>
++              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
++                <Metric label="Bahan" value={formatRupiah(hpp.rawProductionMaterialCostPerBatch)} />
+                 <Metric label="Kemasan" value={formatRupiah(hpp.packagingCostPerBatch)} />
+-                <Metric label="Loss proses" value={formatRupiah(hpp.processLossCostPerBatch)} />
+-                <Metric label="Variabel/porsi" value={formatRupiah(hpp.variableCostPerServing)} />
+-                <Metric label="Overhead/porsi" value={formatRupiah(hpp.fixedOverheadPerServing)} />
+-                <Metric label="HPP penuh/porsi" value={formatRupiah(hpp.hppPerServing)} emphasis />
+-                <Metric label="Saran harga" value={formatRupiah(hpp.suggestedSellingPrice)} emphasis />
++                <Metric label="Tambahan karena sisa/tumpah" value={formatRupiah(hpp.processLossCostPerBatch)} />
++                <Metric label="Biaya produksi per gelas" value={formatRupiah(hpp.variableCostPerServing)} />
++                <Metric label="Biaya bulanan per gelas" value={formatRupiah(hpp.fixedOverheadPerServing)} />
++                <Metric label="Total modal per gelas (HPP)" value={formatRupiah(hpp.hppPerServing)} emphasis />
++                <Metric label="Harga jual yang disarankan" value={formatRupiah(hpp.suggestedSellingPrice)} emphasis />
+               </div>
+-              <p className={`mt-4 text-sm font-bold ${hpp.currentMarginPercent >= settings.targetMarginPercent ? "text-emerald-700" : "text-amber-700"}`}>Margin harga saat ini: {hpp.currentMarginPercent.toFixed(1)}% · Laba kotor: {formatRupiah(hpp.currentProfitPerServing)} per porsi.</p>
++              <p className={`mt-4 text-sm font-bold leading-6 ${hpp.currentMarginPercent >= settings.targetMarginPercent ? "text-emerald-700" : "text-amber-700"}`}>Perkiraan keuntungan dari harga jual sekarang: {hpp.currentMarginPercent.toFixed(1)}% · Selisih harga jual dan modal: {formatRupiah(hpp.currentProfitPerServing)} per gelas.</p>
+               {hpp.auditIssues.length > 0 && (
+                 <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                   <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+-                  <div><p className="font-black">Audit formula</p><p className="mt-1 text-xs leading-5">{hpp.auditIssues.join(" ")}</p></div>
++                  <div><p className="font-black">Hal yang perlu diperbaiki</p><p className="mt-1 text-sm leading-6">{hpp.auditIssues.join(" ")}</p></div>
+                 </div>
+               )}
+             </article>
+           );
+         })}
+-        <button type="button" onClick={addVariant} className="inline-flex items-center gap-2 admin-button-secondary border-dashed border-[#f15a16]/40 text-[#d84909]"><Plus className="size-4" /> Tambah varian</button>
++        <button type="button" onClick={addVariant} className="inline-flex items-center gap-2 admin-button-secondary border-dashed border-[#f15a16]/40 text-[#d84909]"><Plus className="size-4" /> Tambah pilihan ukuran</button>
+       </section>
+     </form>
+   );
+@@ -273,10 +288,10 @@ function TextField({ label, value, onChange, required = true }: { label: string;
+ function AutoSkuField({ label, value }: { label: string; value: string }) {
+   return (
+     <label className="grid gap-2 text-sm font-bold">{label}
+-      <div className="admin-field flex min-h-12 items-center bg-black/[.025] font-mono text-sm font-bold text-black/55">
+-        {value || "Otomatis saat produk disimpan"}
++      <div className="admin-field flex min-h-12 items-center bg-black/[.025] font-mono text-sm font-bold text-black/60">
++        {value || "Dibuat otomatis setelah disimpan"}
+       </div>
+-      <span className="text-[11px] font-normal leading-4 text-black/40">Dibuat sekali oleh sistem dan tidak berubah saat nama produk diedit.</span>
++      <span className="text-xs font-normal leading-5 text-black/50">Tidak perlu diisi. Kode dipakai sistem untuk membedakan setiap pilihan produk.</span>
+     </label>
+   );
+ }
+@@ -285,11 +300,11 @@ function NumberField({ label, value, onChange, min = 0, max, step = "1", prefix,
+     <label className="grid content-start gap-2 text-sm font-bold">
+       {label}
+       <div className="admin-field flex items-center px-3 py-0">
+-        <span className="text-black/35">{prefix}</span>
++        <span className="text-black/45">{prefix}</span>
+         <input required type="number" inputMode="decimal" min={min} max={max} step={step} value={value} onFocus={(event) => event.currentTarget.select()} onChange={(event) => onChange(Number(event.target.value))} className="min-w-0 flex-1 px-2 py-3 font-normal outline-none" />
+-        <span className="text-black/35">{suffix}</span>
++        <span className="text-black/45">{suffix}</span>
+       </div>
+-      {note && <span className="text-[11px] font-normal leading-4 text-black/40">{note}</span>}
++      {note && <span className="text-xs font-normal leading-5 text-black/50">{note}</span>}
+     </label>
+   );
+ }
+@@ -297,5 +312,5 @@ function Checkbox({ label, checked, onChange }: { label: string; checked: boolea
+   return <label className="inline-flex items-center gap-3 text-sm font-bold"><input className="size-4 accent-[#f15a16]" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /> {label}</label>;
+ }
+ function Metric({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
+-  return <div className={`rounded-2xl p-4 ${emphasis ? "bg-[#17130f] text-white" : "bg-[#fbf8f3]"}`}><p className={`text-xs font-bold ${emphasis ? "text-white/55" : "text-black/40"}`}>{label}</p><p className="mt-2 text-lg font-black">{value}</p></div>;
++  return <div className={`rounded-2xl p-4 ${emphasis ? "bg-[#17130f] text-white" : "bg-[#fbf8f3]"}`}><p className={`text-sm font-bold leading-5 ${emphasis ? "text-white/70" : "text-black/55"}`}>{label}</p><p className="mt-2 text-lg font-black">{value}</p></div>;
+ }
+diff --git a/src/lib/hpp.ts b/src/lib/hpp.ts
+index 95e11d1..2c05988 100644
+--- a/src/lib/hpp.ts
++++ b/src/lib/hpp.ts
+@@ -76,7 +76,7 @@ export function calculateVariantHpp(
+   const duplicateIds = variant.recipe
+     .map((line) => line.ingredientId)
+     .filter((id, index, all) => all.indexOf(id) !== index);
+-  if (duplicateIds.length) auditIssues.push("Ada bahan yang muncul lebih dari sekali pada resep.");
++  if (duplicateIds.length) auditIssues.push("Bahan yang sama dimasukkan lebih dari sekali. Gabungkan jumlahnya menjadi satu baris.");
+ 
+   for (const line of variant.recipe) {
+     const ingredient = ingredientMap.get(line.ingredientId);
+@@ -138,16 +138,16 @@ export function calculateVariantHpp(
+     ? (currentProfitPerServing / safeNonNegative(variant.sellingPrice)) * 100
+     : 0;
+ 
+-  if (!variant.recipe.length) auditIssues.push("Resep belum memiliki bahan.");
+-  if (batchYield <= 0) auditIssues.push("Hasil batch harus lebih dari nol.");
+-  if (missingIngredientIds.length) auditIssues.push("Ada bahan resep yang tidak ditemukan.");
+-  if (inactiveIngredientIds.length) auditIssues.push("Ada bahan nonaktif yang masih dipakai resep.");
+-  if (invalidIngredientIds.length) auditIssues.push("Ada bahan dengan biaya efektif nol atau tidak valid.");
++  if (!variant.recipe.length) auditIssues.push("Resep belum memiliki bahan atau kemasan.");
++  if (batchYield <= 0) auditIssues.push("Jumlah gelas dari sekali produksi harus lebih dari 0.");
++  if (missingIngredientIds.length) auditIssues.push("Ada bahan resep yang sudah terhapus. Pilih bahan pengganti atau hapus baris tersebut.");
++  if (inactiveIngredientIds.length) auditIssues.push("Ada bahan yang sedang disembunyikan tetapi masih dipakai di resep.");
++  if (invalidIngredientIds.length) auditIssues.push("Ada bahan yang harga, jumlah pembelian, atau bagian yang bisa dipakainya belum benar.");
+   if (safeNonNegative(settings.monthlyTargetServings) <= 0 && calculateMonthlyFixedCosts(settings) > 0) {
+-    auditIssues.push("Target porsi bulanan belum diisi sehingga overhead belum dialokasikan.");
++    auditIssues.push("Perkiraan gelas terjual per bulan belum diisi, sehingga biaya bulanan belum dapat dibagi ke setiap gelas.");
+   }
+   if (variant.active && safeNonNegative(variant.sellingPrice) <= 0) {
+-    auditIssues.push("Varian aktif belum memiliki harga jual.");
++    auditIssues.push("Pilihan produk ditampilkan di katalog tetapi harga jualnya belum diisi.");
+   }
+ 
+   return {
+diff --git a/src/lib/validation.ts b/src/lib/validation.ts
+index a9b8eb7..51ab110 100644
+--- a/src/lib/validation.ts
++++ b/src/lib/validation.ts
+@@ -5,14 +5,14 @@ import { calculateVariantHpp, slugify } from "@/lib/hpp";
+ 
+ export function validateIngredient(input: IngredientInput) {
+   const errors: string[] = [];
+-  if (!input.name.trim()) errors.push("Nama bahan wajib diisi.");
+-  if (Number(input.purchasePrice) <= 0) errors.push("Harga beli harus lebih dari nol.");
+-  if (Number(input.purchaseQuantity) <= 0) errors.push("Jumlah pembelian harus lebih dari nol.");
++  if (!input.name.trim()) errors.push("Nama bahan atau kemasan belum diisi.");
++  if (Number(input.purchasePrice) <= 0) errors.push("Harga yang dibayar harus lebih dari Rp0.");
++  if (Number(input.purchaseQuantity) <= 0) errors.push("Jumlah barang yang didapat harus lebih dari 0.");
+   if (Number(input.yieldPercent) <= 0 || Number(input.yieldPercent) > 100) {
+-    errors.push("Yield bahan harus lebih dari 0% dan maksimal 100%.");
++    errors.push("Bagian yang bisa dipakai harus lebih dari 0% dan tidak boleh melebihi 100%.");
+   }
+   if (input.costType === "packaging" && Number(input.yieldPercent) !== 100) {
+-    errors.push("Yield kemasan harus 100%. Gunakan susut proses pada resep untuk kehilangan produksi.");
++    errors.push("Kemasan selalu dihitung 100% bisa dipakai. Kehilangan saat produksi dicatat pada resep produk.");
+   }
+   return errors;
+ }
+@@ -25,12 +25,12 @@ export function validateHppSettings(settings: HppSettings) {
+     settings.monthlyDepreciationCost,
+     settings.monthlyOtherFixedCost
+   ];
+-  if (costs.some((value) => Number(value) < 0)) errors.push("Biaya tetap tidak boleh negatif.");
+-  if (Number(settings.monthlyTargetServings) <= 0) errors.push("Target porsi bulanan harus lebih dari nol.");
++  if (costs.some((value) => Number(value) < 0)) errors.push("Biaya bulanan tidak boleh menggunakan angka minus.");
++  if (Number(settings.monthlyTargetServings) <= 0) errors.push("Perkiraan gelas terjual per bulan harus lebih dari 0.");
+   if (Number(settings.targetMarginPercent) < 0 || Number(settings.targetMarginPercent) >= 100) {
+-    errors.push("Target margin harus berada di antara 0% sampai kurang dari 100%.");
++    errors.push("Target keuntungan harus mulai dari 0% dan harus kurang dari 100%.");
+   }
+-  if (Number(settings.priceRoundingStep) <= 0) errors.push("Kelipatan pembulatan harga harus lebih dari nol.");
++  if (Number(settings.priceRoundingStep) <= 0) errors.push("Pembulatan saran harga harus lebih dari Rp0.");
+   return errors;
+ }
+ 
+@@ -40,58 +40,58 @@ export function validateProduct(
+   settings: HppSettings
+ ) {
+   const errors: string[] = [];
+-  if (!product.name.trim()) errors.push("Nama produk wajib diisi.");
+-  if (!slugify(product.slug || product.name)) errors.push("Slug produk tidak valid.");
+-  if (!product.category.trim()) errors.push("Kategori produk wajib diisi.");
+-  if (!product.description.trim()) errors.push("Deskripsi produk wajib diisi.");
+-  if (!product.imageUrl.trim()) errors.push("Gambar produk wajib diisi.");
+-  if (!product.variants.length) errors.push("Produk harus memiliki minimal satu varian.");
++  if (!product.name.trim()) errors.push("Nama produk belum diisi.");
++  if (!slugify(product.slug || product.name)) errors.push("Alamat halaman produk belum valid. Isi nama produk terlebih dahulu.");
++  if (!product.category.trim()) errors.push("Kategori produk belum diisi.");
++  if (!product.description.trim()) errors.push("Deskripsi untuk pengunjung belum diisi.");
++  if (!product.imageUrl.trim()) errors.push("Gambar produk belum dipilih.");
++  if (!product.variants.length) errors.push("Produk harus memiliki paling sedikit satu pilihan ukuran atau jenis.");
+   if (product.active && !product.variants.some((variant) => variant.active)) {
+-    errors.push("Produk aktif harus memiliki minimal satu varian aktif.");
++    errors.push("Produk akan ditampilkan di katalog, tetapi belum ada pilihan ukuran yang ikut ditampilkan.");
+   }
+ 
+   const variantNames = new Set<string>();
+   const variantSkus = new Set<string>();
+ 
+   for (const [index, variant] of product.variants.entries()) {
+-    const label = variant.name.trim() || `Varian ${index + 1}`;
++    const label = variant.name.trim() || `Pilihan ${index + 1}`;
+     const normalizedName = label.toLowerCase();
+-    if (!variant.name.trim()) errors.push(`Nama ${label} wajib diisi.`);
+-    if (variantNames.has(normalizedName)) errors.push(`Nama varian "${label}" digunakan lebih dari sekali.`);
++    if (!variant.name.trim()) errors.push(`Nama untuk pilihan ${index + 1} belum diisi.`);
++    if (variantNames.has(normalizedName)) errors.push(`Nama pilihan “${label}” dipakai lebih dari sekali. Gunakan nama yang berbeda.`);
+     variantNames.add(normalizedName);
+ 
+     if (variant.sku.trim()) {
+       const sku = variant.sku.trim().toLowerCase();
+-      if (variantSkus.has(sku)) errors.push(`SKU varian "${variant.sku}" digunakan lebih dari sekali.`);
++      if (variantSkus.has(sku)) errors.push(`Kode produk “${variant.sku}” dipakai lebih dari sekali.`);
+       variantSkus.add(sku);
+     }
+ 
+     if (variant.active && Number(variant.sellingPrice) <= 0) {
+-      errors.push(`${label}: harga jual varian aktif harus lebih dari nol.`);
++      errors.push(`${label}: isi harga jual lebih dari Rp0 sebelum pilihan ini ditampilkan di katalog.`);
+     }
+     if (!Number.isInteger(Number(variant.batchYield)) || Number(variant.batchYield) <= 0) {
+-      errors.push(`${label}: hasil batch harus berupa bilangan bulat lebih dari nol.`);
++      errors.push(`${label}: jumlah gelas dari sekali produksi harus berupa angka bulat lebih dari 0.`);
+     }
+     if (Number(variant.processLossPercent) < 0 || Number(variant.processLossPercent) >= 100) {
+-      errors.push(`${label}: process loss harus berada di antara 0% sampai kurang dari 100%.`);
++      errors.push(`${label}: tambahan bahan karena sisa atau tumpah harus mulai dari 0% dan kurang dari 100%.`);
+     }
+     if ([variant.laborCostPerBatch, variant.utilityCostPerBatch, variant.otherVariableCostPerBatch].some((value) => Number(value) < 0)) {
+-      errors.push(`${label}: komponen biaya batch tidak boleh negatif.`);
++      errors.push(`${label}: biaya sekali produksi tidak boleh menggunakan angka minus.`);
+     }
+-    if (!variant.recipe.length) errors.push(`${label}: resep belum memiliki bahan.`);
++    if (!variant.recipe.length) errors.push(`${label}: resep belum memiliki bahan atau kemasan.`);
+ 
+     const duplicateIngredient = variant.recipe.some((line, lineIndex, lines) =>
+       lines.findIndex((candidate) => candidate.ingredientId === line.ingredientId) !== lineIndex
+     );
+-    if (duplicateIngredient) errors.push(`${label}: satu bahan tidak boleh muncul dua kali dalam resep yang sama.`);
++    if (duplicateIngredient) errors.push(`${label}: bahan yang sama dimasukkan lebih dari sekali. Gabungkan jumlahnya menjadi satu baris.`);
+     if (variant.recipe.some((line) => Number(line.quantity) <= 0)) {
+-      errors.push(`${label}: jumlah pemakaian bahan harus lebih dari nol.`);
++      errors.push(`${label}: jumlah bahan yang dipakai harus lebih dari 0.`);
+     }
+ 
+     const hpp = calculateVariantHpp(variant, ingredients, settings);
+-    if (hpp.missingIngredientIds.length) errors.push(`${label}: ada bahan resep yang sudah tidak ditemukan.`);
+-    if (variant.active && hpp.inactiveIngredientIds.length) errors.push(`${label}: ada bahan nonaktif pada resep varian aktif.`);
+-    if (hpp.invalidIngredientIds.length) errors.push(`${label}: ada bahan dengan harga atau yield yang belum valid.`);
++    if (hpp.missingIngredientIds.length) errors.push(`${label}: ada bahan resep yang sudah terhapus. Pilih bahan pengganti atau hapus baris tersebut.`);
++    if (variant.active && hpp.inactiveIngredientIds.length) errors.push(`${label}: ada bahan yang sedang disembunyikan tetapi masih dipakai. Aktifkan kembali bahan tersebut atau ganti bahan resep.`);
++    if (hpp.invalidIngredientIds.length) errors.push(`${label}: ada bahan yang harga, jumlah pembelian, atau bagian yang bisa dipakainya belum benar.`);
+   }
+ 
+   return [...new Set(errors)];
+@@ -124,4 +124,3 @@ export function normalizeProduct(product: ProductInput): ProductInput {
+     }))
+   };
+ }
+-
